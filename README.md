@@ -22,6 +22,8 @@ To get prepared please install the `kubernetes cli` & `setup cluster` in your en
 
 4. [**Kubernetes – Architecture and main components overview**](https://github.com/NotHarshhaa/kubernetes-projects/blob/master/learning/Kubernetes-components-overview/README.md)
 
+5. [**How to deploy DaemonSets Service in Kubernetes (K8s)?**](https://github.com/NotHarshhaa/kubernetes-projects/blob/master/learning/Deploy-DaemonSets-Service-in-Kubernetes/README.md)
+
 **MORE ADDING SOON**
 
 ## Projects List
