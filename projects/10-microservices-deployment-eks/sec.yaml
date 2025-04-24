@@ -3,5 +3,8 @@ kind: Secret
 type: kubernetes.io/service-account-token
 metadata:
   name: mysecretname
+  namespace: webapps  # Optional: specify the namespace for the secret
   annotations:
-    kubernetes.io/service-account.name: jenkins
+    kubernetes.io/service-account.name: jenkins  # Link to ServiceAccount
+  labels:
+    app: jenkins  # Optional: add a label for better organization
