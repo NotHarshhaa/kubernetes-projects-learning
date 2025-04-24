@@ -3,3 +3,6 @@ kind: ServiceAccount
 metadata:
   name: jenkins
   namespace: webapps
+  labels:
+    app: jenkins
+    environment: dev  # Optional: adjust based on your usage (dev/staging/prod)
