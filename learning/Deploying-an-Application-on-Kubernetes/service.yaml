@@ -1,16 +1,15 @@
 apiVersion: v1
-# Indicates this as a service
 kind: Service
 metadata:
- # Service name
- name: notes-app-deployment
+  name: notes-app-service  # Service name
+  labels:
+    app: notes-app
+    app.kubernetes.io/name: notes-app
 spec:
- selector:
-   # Selector for Pods
-   app: notes-app
- ports:
-   # Port Map
- - port: 80
-   targetPort: 3000
-   protocol: TCP
- type: LoadBalancer
+  type: LoadBalancer  # Expose the service externally
+  selector:
+    app: notes-app  # Selector to match pods with the same label
+  ports:
+    - port: 80          # Port exposed externally
+      targetPort: 3000  # Port on the container
+      protocol: TCP

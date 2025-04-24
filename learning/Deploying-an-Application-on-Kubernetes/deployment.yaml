@@ -15,11 +15,30 @@ spec:
         app: notes-app
     spec:
       containers:
-      - name: notes-app-deployment
+      - name: notes-app
         image: pavansa/notes-app
-        resources:
-          requests:
-            cpu: "100m"
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"
+        env:
+        - name: NODE_ENV
+          value: "production"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 20
