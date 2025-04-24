@@ -1,74 +1,120 @@
-pipeline{
+pipeline {
     agent any
-    tools{
+
+    tools {
         jdk 'jdk17'
         nodejs 'node16'
     }
+
     environment {
-        SCANNER_HOME=tool 'sonar-scanner'
+        SCANNER_HOME = tool 'sonar-scanner'
+        DOCKER_IMAGE = 'NotHarshhaa/uber:latest'
+        SONAR_PROJECT_NAME = 'Uber'
+        SONAR_PROJECT_KEY = 'Uber'
     }
+
+    options {
+        timestamps() // Adds timestamps to logs for better debugging
+    }
+
     stages {
-        stage('clean workspace'){
-            steps{
+        stage('Clean Workspace') {
+            steps {
                 cleanWs()
             }
         }
-        stage('Checkout from Git'){
-            steps{
-                git branch: 'main', url: 'https://github.com/SushantOps/uber-clone.git'
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'master', url: 'https://github.com/NotHarshhaa/uber-clone.git'
             }
         }
-        stage("Sonarqube Analysis "){
-            steps{
+
+        stage('SonarQube Analysis') {
+            steps {
                 withSonarQubeEnv('sonar-server') {
-                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Uber \
-                    -Dsonar.projectKey=Uber'''
+                    sh '''
+                        $SCANNER_HOME/bin/sonar-scanner \
+                        -Dsonar.projectName=${SONAR_PROJECT_NAME} \
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY}
+                    '''
                 }
             }
         }
-        stage("quality gate"){
-           steps {
+
+        stage('Quality Gate Check') {
+            steps {
                 script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'Sonar-token'
+                    def qualityGate = waitForQualityGate abortPipeline: true, credentialsId: 'Sonar-token'
+                    if (qualityGate.status != 'OK') {
+                        error "❌ SonarQube Quality Gate failed!"
+                    }
                 }
             }
         }
+
         stage('Install Dependencies') {
             steps {
-                sh "npm install"
+                sh 'npm install'
             }
         }
-        stage('OWASP FS SCAN') {
+
+        stage('OWASP Dependency Check') {
             steps {
                 dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
-         stage('TRIVY FS SCAN') {
+
+        stage('Trivy File System Scan') {
             steps {
-                sh "trivy fs . > trivyfs.txt"
+                sh 'trivy fs . | tee trivy-fs-report.txt'
             }
         }
-        stage("Docker Build & Push"){
-            steps{
-                script{
-                   withDockerRegistry(credentialsId: 'docker', toolName: 'docker'){
-                       sh "docker build -t uber ."
-                       sh "docker tag uber sushantkapare1717/uber:latest "
-                       sh "docker push sushantkapare1717/uber:latest "
+
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        sh """
+                            echo "🔨 Building Docker Image..."
+                            docker build -t uber .
+                            docker tag uber ${DOCKER_IMAGE}
+                            
+                            echo "🚀 Pushing Docker Image to Registry..."
+                            docker push ${DOCKER_IMAGE}
+                        """
                     }
                 }
             }
         }
-        stage("TRIVY"){
-            steps{
-                sh "trivy image sushantkapare1717/uber:latest > trivyimage.txt"
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh 'trivy image ${DOCKER_IMAGE} | tee trivy-image-report.txt'
             }
         }
-        stage("deploy_docker"){
-            steps{
-                sh "docker run -d --name uber -p 3000:3000 sushantkapare1717/uber:latest"
+
+        stage('Deploy Docker Container') {
+            steps {
+                sh """
+                    echo "🛠️ Stopping existing container (if running)..."
+                    docker stop uber || true
+                    docker rm uber || true
+                    
+                    echo "🚀 Running new container..."
+                    docker run -d --name uber -p 3000:3000 ${DOCKER_IMAGE}
+                """
             }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Build and Deployment Completed Successfully!"
+        }
+        failure {
+            echo "❌ Build Failed! Check logs for more details."
         }
     }
 }
