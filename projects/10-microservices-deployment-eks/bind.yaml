@@ -2,12 +2,12 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: app-rolebinding
-  namespace: webapps
+  namespace: webapps  # Target namespace
 roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: app-role
+  apiGroup: rbac.authorization.k8s.io  # API group for the Role
+  kind: Role                           # Reference to a Role (not ClusterRole)
+  name: app-role                       # Name of the Role being bound
 subjects:
-  - namespace: webapps
-    kind: ServiceAccount
-    name: jenkins
+  - kind: ServiceAccount              # Subject type
+    name: jenkins                     # ServiceAccount name
+    namespace: webapps               # Namespace of the ServiceAccount
