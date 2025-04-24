@@ -4,84 +4,73 @@
 
 In the realm of cloud computing, deploying a complex application with precision and efficiency is a paramount challenge. Amazon Web Services (AWS) offers Elastic Kubernetes Service (EKS), a fully managed Kubernetes service that simplifies the deployment, management, and scaling of containerized applications. In this blog post, we’ll delve into the intricacies of orchestrating a 10-tier application on AWS EKS.
 
-# **Designing the 10-Microservices Application**
+## **Designing the 10-Microservices Application**
 
 ## **1\. Presentation Tier 🖥️:**
 
 * Host your frontend application here.
-    
+
 * Utilize AWS Elastic Load Balancer (ELB) for distributing incoming traffic.
-    
 
 ## **2\. Web Server Tier 🌐:**
 
 * Deploy web servers using containers managed by Kubernetes pods.
-    
+
 * Leverage Kubernetes Services for load balancing within the web server tier.
-    
 
 ## **3\. Application Tier 🚀:**
 
 * Run application logic in containers using Kubernetes Deployments.
-    
+
 * Implement auto-scaling based on demand to ensure optimal performance.
-    
 
 ## **4\. API Gateway Tier 🚪:**
 
 * Use Amazon API Gateway to create, publish, and manage APIs.
-    
+
 * Enable authentication and throttling for secure and controlled access.
-    
 
 ## **5\. Business Logic Tier 💼:**
 
 * Containerize business logic components and deploy using Kubernetes.
-    
+
 * Utilize AWS Lambda for serverless execution of specific functions.
-    
 
 ## **6\. Message Queue Tier 📬:**
 
 * Implement message queues like Amazon Simple Queue Service (SQS) for asynchronous communication between components.
-    
+
 * Ensure reliability and scalability of message processing.
-    
 
 ## **7\. Data Access Tier 📊:**
 
 * Manage data storage and retrieval using Amazon Relational Database Service (RDS) or Amazon DynamoDB.
-    
+
 * Implement read replicas for scalability and fault tolerance.
-    
 
 ## **8\. Caching Tier 🚀:**
 
 * Utilize Amazon ElastiCache for in-memory caching to enhance application performance.
-    
+
 * Configure caching strategies based on the application’s needs.
-    
 
 ## **9\. Storage Tier 🗄️:**
 
 * Use Amazon S3 for scalable and durable object storage.
-    
+
 * Implement data lifecycle policies to manage data efficiently.
-    
 
 ## **10\. Infrastructure Tier 🌐:**
 
 * Leverage Amazon EKS to manage and orchestrate containers effectively.
-    
+
 * Utilize AWS Identity and Access Management (IAM) for secure access control.
-    
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*lBtxr2c2uMcXmz9y.png)
 
 # **Step-by-Step Implementation :-**
 
 1. **Create an AWS EC2 instance**
-    
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*jetGaqyeE1uAXzuC.png)
 
@@ -210,6 +199,9 @@ kind: ServiceAccount
 metadata:
   name: jenkins
   namespace: webapps
+  labels:
+    app: jenkins
+    environment: dev  # Optional: adjust based on your usage (dev/staging/prod)
 ```
 
 ```yaml
@@ -219,51 +211,49 @@ kubectl apply -f sa.yaml
 3\. Now we need to create role
 
 ```yaml
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
- name: app-role
- namespace: webapps
+  name: app-role
+  namespace: webapps
 rules:
- - apiGroups:
- - ""
- - apps
- - autoscaling
- - batch
- - extensions
- - policy
- - rbac.authorization.k8s.io
- resources:
- - pods
- - configmaps
- - deployments
- - daemonsets
- - componentstatuses
- - events
- - endpoints
- - horizontalpodautoscalers
- - ingress
- - jobs
- - limitranges
- - namespaces
- - nodes
- - pods
- - persistentvolumes
- - persistentvolumeclaims
- - resourcequotas
- - replicasets
- - replicationcontrollers
- - serviceaccounts
- - services
- verbs:
- - get
- - list
- - watch
- - create
- - update
- - patch
- - delete
+  - apiGroups:
+      - ""                           # Core API group
+      - apps
+      - autoscaling
+      - batch
+      - extensions
+      - policy
+      - rbac.authorization.k8s.io
+    resources:
+      - pods
+      - configmaps
+      - deployments
+      - daemonsets
+      - componentstatuses
+      - events
+      - endpoints
+      - horizontalpodautoscalers
+      - ingress
+      - jobs
+      - limitranges
+      - namespaces
+      - nodes
+      - persistentvolumes
+      - persistentvolumeclaims
+      - resourcequotas
+      - replicasets
+      - replicationcontrollers
+      - serviceaccounts
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
 ```
 
 ![](https://miro.medium.com/v2/resize:fit:685/1*q3EwCbqtjT4dOpzytx1jAA.png)
@@ -275,15 +265,15 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: app-rolebinding
-  namespace: webapps
+  namespace: webapps  # Target namespace
 roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: app-role
+  apiGroup: rbac.authorization.k8s.io  # API group for the Role
+  kind: Role                           # Reference to a Role (not ClusterRole)
+  name: app-role                       # Name of the Role being bound
 subjects:
-  - namespace: webapps
-    kind: ServiceAccount
-    name: jenkins
+  - kind: ServiceAccount              # Subject type
+    name: jenkins                     # ServiceAccount name
+    namespace: webapps               # Namespace of the ServiceAccount
 ```
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*vrx020cTWLWNSrcE.png)
@@ -296,8 +286,11 @@ kind: Secret
 type: kubernetes.io/service-account-token
 metadata:
   name: mysecretname
+  namespace: webapps  # Optional: specify the namespace for the secret
   annotations:
-    kubernetes.io/service-account.name: jenkins
+    kubernetes.io/service-account.name: jenkins  # Link to ServiceAccount
+  labels:
+    app: jenkins  # Optional: add a label for better organization
 ```
 
 ![](https://miro.medium.com/v2/resize:fit:569/0*8T2cSyNTgW6u2oY-.png)
@@ -311,188 +304,106 @@ Lets goto our Pipeline and add below Script.
 ```groovy
 pipeline {
     agent any
-    environment{
-        SCANNER_HOME= tool 'sonar-scanner'
+
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
     }
+
     stages {
-        stage('git checkout') {
+        stage('Git Checkout') {
             steps {
                 git branch: 'latest', url: 'https://github.com/SushantOps/10-Tier-MicroService-Appliction.git'
             }
         }
-        stage('SonarQube') {
+
+        stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonar') {
-                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectKey=10-Tier -Dsonar.ProjectName=10-Tier -Dsonar.java.binaries=. '''   
+                    sh '''$SCANNER_HOME/bin/sonar-scanner \
+                        -Dsonar.projectKey=10-Tier \
+                        -Dsonar.projectName=10-Tier \
+                        -Dsonar.java.binaries=.'''
                 }
-                    
-            }
-                
-        }
-        stage('adservice'){
-            steps{
-             script{
-              withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        dir('/var/lib/jenkins/workspace/10-Tier/src/adservice') {
-                            sh 'docker build -t sushantkapare1717/adservice:latest .'
-                            sh "docker push sushantkapare1717/adservice:latest"
-                            sh "docker rmi sushantkapare1717/adservice:latest"
-                        }
-                    }
-            }
             }
         }
-        
-        stage('cartservice'){
-            steps{
-             script{
-              withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        dir('/var/lib/jenkins/workspace/10-Tier/src/cartservice/src/') {
-                            sh 'docker build -t sushantkapare1717/cartservice:latest .'
-                            sh "docker push sushantkapare1717/cartservice:latest"
-                            sh "docker rmi sushantkapare1717/cartservice:latest"
-                        }
-                    }
-            }
-            }
-        }
-        
-        stage('checkoutservice'){
-            steps{
-             script{
-              withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        dir('/var/lib/jenkins/workspace/10-Tier/src/checkoutservice/') {
-                            sh 'docker build -t sushantkapare1717/checkoutservice:latest .'
-                            sh "docker push sushantkapare1717/checkoutservice:latest"
-                            sh "docker rmi sushantkapare1717/checkoutservice:latest"
-                        }
-                    }
-            }
-            }
-        }
-        
-        stage('currencyservice'){
-            steps{
-             script{
-              withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        dir('/var/lib/jenkins/workspace/10-Tier/src/currencyservice/') {
-                            sh 'docker build -t sushantkapare1717/currencyservice:latest .'
-                            sh "docker push sushantkapare1717/currencyservice:latest"
-                            sh "docker rmi sushantkapare1717/currencyservice:latest"
-                        }
-                    }
-            }
+
+        stage('Build & Push Docker Images') {
+            parallel {
+                stage('adservice') {
+                    steps { buildAndPush('adservice') }
+                }
+                stage('cartservice') {
+                    steps { buildAndPush('cartservice/src') }
+                }
+                stage('checkoutservice') {
+                    steps { buildAndPush('checkoutservice') }
+                }
+                stage('currencyservice') {
+                    steps { buildAndPush('currencyservice') }
+                }
+                stage('emailservice') {
+                    steps { buildAndPush('emailservice') }
+                }
+                stage('frontend') {
+                    steps { buildAndPush('frontend') }
+                }
+                stage('loadgenerator') {
+                    steps { buildAndPush('loadgenerator') }
+                }
+                stage('paymentservice') {
+                    steps { buildAndPush('paymentservice') }
+                }
+                stage('productcatalogservice') {
+                    steps { buildAndPush('productcatalogservice') }
+                }
+                stage('recommendationservice') {
+                    steps { buildAndPush('recommendationservice') }
+                }
+                stage('shippingservice') {
+                    steps { buildAndPush('shippingservice') }
+                }
             }
         }
-        
-        stage('emailservice'){
-            steps{
-             script{
-              withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        dir('/var/lib/jenkins/workspace/10-Tier/src/emailservice/') {
-                            sh 'docker build -t sushantkapare1717/emailservice:latest .'
-                            sh "docker push sushantkapare1717/emailservice:latest"
-                            sh "docker rmi sushantkapare1717/emailservice:latest"
-                        }
-                    }
-            }
-            }
-        }
-        
-        stage('frontend'){
-            steps{
-             script{
-              withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        dir('/var/lib/jenkins/workspace/10-Tier/src/frontend/') {
-                            sh 'docker build -t sushantkapare1717/frontend:latest .'
-                            sh "docker push sushantkapare1717/frontend:latest"
-                            sh "docker rmi sushantkapare1717/frontend:latest"
-                        }
-                    }
-            }
-            }
-        }
-    
-        stage('loadgenerator'){
-            steps{
-             script{
-              withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        dir('/var/lib/jenkins/workspace/10-Tier/src/loadgenerator/') {
-                            sh 'docker build -t sushantkapare1717/loadgenerator:latest .'
-                            sh "docker push sushantkapare1717/loadgenerator:latest"
-                            sh "docker rmi sushantkapare1717/loadgenerator:latest"
-                        }
-                    }
-            }
-            }
-        }
-    
-        stage('paymentservice'){
-            steps{
-             script{
-              withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        dir('/var/lib/jenkins/workspace/10-Tier/src/paymentservice/') {
-                            sh 'docker build -t sushantkapare1717/paymentservice:latest .'
-                            sh "docker push sushantkapare1717/paymentservice:latest"
-                            sh "docker rmi sushantkapare1717/paymentservice:latest"
-                        }
-                    }
-            }
-            }
-        }
-        
-        stage('productcatalogservice'){
-            steps{
-             script{
-              withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        dir('/var/lib/jenkins/workspace/10-Tier/src/productcatalogservice/') {
-                            sh 'docker build -t sushantkapare1717/productcatalogservice:latest .'
-                            sh "docker push sushantkapare1717/productcatalogservice:latest"
-                            sh "docker rmi sushantkapare1717/productcatalogservice:latest"
-                        }
-                    }
-            }
-            }
-        }
-        
-        stage('recommendationservice'){
-            steps{
-             script{
-              withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        dir('/var/lib/jenkins/workspace/10-Tier/src/recommendationservice/') {
-                            sh 'docker build -t sushantkapare1717/recommendationservice:latest .'
-                            sh "docker push sushantkapare1717/recommendationservice:latest"
-                            sh "docker rmi sushantkapare1717/recommendationservice:latest"
-                        }
-                    }
-            }
-            }
-        }
-        
-        stage('shippingservice'){
-            steps{
-             script{
-              withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        dir('/var/lib/jenkins/workspace/10-Tier/src/shippingservice/') {
-                            sh 'docker build -t sushantkapare1717/shippingservice:latest .'
-                            sh "docker push sushantkapare1717/shippingservice:latest"
-                            sh "docker rmi sushantkapare1717/shippingservice:latest"
-                        }
-                    }
-            }
-            }
-        }
-        
-        stage('K8-Deploy'){
-            steps{
-                withKubeConfig(caCertificate: '', clusterName: 'my-eks2', contextName: '', credentialsId: 'k8-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://EBCE08CF45C3AA5A574E126370E5D4FC.gr7.ap-south-1.eks.amazonaws.com') {
+
+        stage('K8s Deploy') {
+            steps {
+                withKubeConfig(
+                    caCertificate: '',
+                    clusterName: 'my-eks2',
+                    contextName: '',
+                    credentialsId: 'k8-token',
+                    namespace: 'webapps',
+                    restrictKubeConfigAccess: false,
+                    serverUrl: 'https://EBCE08CF45C3AA5A574E126370E5D4FC.gr7.ap-south-1.eks.amazonaws.com'
+                ) {
                     sh 'kubectl apply -f deployment-service.yml'
                     sh 'kubectl get pods'
                     sh 'kubectl get svc'
                 }
             }
         }
+    }
+
+    // Reusable build & push function
+    // Adjust image name prefix if needed
+    post {
+        always {
+            echo "Pipeline execution complete!"
+        }
+    }
 }
+
+def buildAndPush(String servicePath) {
+    script {
+        def imageName = "sushantkapare1717/${servicePath.tokenize('/')[-1]}:latest"
+        withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
+            dir("/var/lib/jenkins/workspace/10-Tier/src/${servicePath}") {
+                sh "docker build -t ${imageName} ."
+                sh "docker push ${imageName}"
+                sh "docker rmi ${imageName}"
+            }
+        }
+    }
 }
 ```
 
@@ -516,8 +427,8 @@ kubectl get pods -n webapps
 
 ![](https://miro.medium.com/v2/resize:fit:736/1*HM2SUQOIjgQ-YmCCZr7mSQ.png)
 
-**Terminate the AWS EC2 Instance**
+- **Terminate the AWS EC2 Instance**
 
-**Lastly, do not forget to terminate the AWS EC2 Instance.**
+- **Lastly, do not forget to terminate the AWS EC2 Instance.**
 
-### If you like this article, please share with others. ❤️
+## If you like this article, please share with others. ❤️
