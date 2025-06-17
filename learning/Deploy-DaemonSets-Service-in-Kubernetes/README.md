@@ -116,20 +116,13 @@ spec:
 
 In case you will not specify anything, then the controller will be creating Pods on every node of the cluster.
 
-**For Reference**
+**Additional Resources**
 
-## [**DaemonSet**](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/?source=post_page-----37d642dcd66f--------------------------------)
+For more information about DaemonSets, check out these resources:
 
-### [A DaemonSet ensures that all (or some) Nodes run a copy of a Pod. As nodes are added to the cluster, Pods are added to…](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/?source=post_page-----37d642dcd66f--------------------------------)
+- [Kubernetes DaemonSet Documentation](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/) - Official Kubernetes documentation explaining DaemonSets in detail
+- [Understanding Kubernetes DaemonSets](https://www.bmc.com/blogs/kubernetes-daemonset/) - A comprehensive guide covering DaemonSet use cases and implementation
 
-[kubernetes.io](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/?source=post_page-----37d642dcd66f--------------------------------)
-
-## [**What is Kubernetes DaemonSet? K8s DaemonSets Explained**](https://www.bmc.com/blogs/kubernetes-daemonset/?source=post_page-----37d642dcd66f--------------------------------)
-
-### [In this blog post, we will discuss Kubernetes DaemonSet, including what it’s used for, how to create one, and how to…](https://www.bmc.com/blogs/kubernetes-daemonset/?source=post_page-----37d642dcd66f--------------------------------)
-
-[www.bmc.com](https://www.bmc.com/blogs/kubernetes-daemonset/?source=post_page-----37d642dcd66f--------------------------------)
-
-![](https://miro.medium.com/v2/resize:fit:736/0*cRMUa8dBX1dHpj5L)
+![DaemonSet Architecture Diagram](https://miro.medium.com/v2/resize:fit:736/0*cRMUa8dBX1dHpj5L)
 
 ### If you like this article, please share with others. ❤️

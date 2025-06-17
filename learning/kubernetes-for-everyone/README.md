@@ -8,7 +8,7 @@ Kubernetes is the `de facto` standard for running containerized applications.
 
 > Kubernetes (K8s) is an open-source system for `automating deployment`, `scaling`, and `management` of containerized applications.
 
-[![](https://res.cloudinary.com/practicaldev/image/fetch/s--RWDsJZoQ--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://thepracticaldev.s3.amazonaws.com/i/idtqaj43wbzw5704fwdb.png)](https://res.cloudinary.com/practicaldev/image/fetch/s--RWDsJZoQ--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://thepracticaldev.s3.amazonaws.com/i/idtqaj43wbzw5704fwdb.png)
+![](https://res.cloudinary.com/practicaldev/image/fetch/s--RWDsJZoQ--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://thepracticaldev.s3.amazonaws.com/i/idtqaj43wbzw5704fwdb.png)
 
 **Kubernetes** makes it easy to deploy and run containerized applications. **Kubernetes** is simple to use.
 
@@ -35,7 +35,7 @@ Let us start hacking on Kubernetes.
 
 The Kubernetes run in a highly available cluster mode. Each Kubernetes cluster consists of one or more master node and a few worker nodes.
 
-[![Alt Text](https://res.cloudinary.com/practicaldev/image/fetch/s--cB_xIijv--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/i/gkc90lkkd9cdfqjx2i2m.png)](https://res.cloudinary.com/practicaldev/image/fetch/s--cB_xIijv--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/i/gkc90lkkd9cdfqjx2i2m.png)
+![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/gkc90lkkd9cdfqjx2i2m.png)
 
 ### **Master Node**
 
@@ -43,7 +43,7 @@ The master node consists of an API server, Scheduler, Controllers, etcd. This no
 
 That is the control plane is responsible for all the actions inside Kubernetes.
 
-[![Alt Text](https://res.cloudinary.com/practicaldev/image/fetch/s--AIO49EkR--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/i/wgenne5f9y8a25shgb29.png)](https://res.cloudinary.com/practicaldev/image/fetch/s--AIO49EkR--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/i/wgenne5f9y8a25shgb29.png)
+![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/wgenne5f9y8a25shgb29.png)
 
 Via the `API server`, we can instruct the Kubernetes or get information from the Kubernetes.
 
@@ -55,7 +55,7 @@ The `etcd` is a storage for the Kubernetes. It is key-value storage.
 
 ### **Node**
 
-[![Alt Text](https://res.cloudinary.com/practicaldev/image/fetch/s--mQTCJBI0--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/i/g9w3a7g1ytmxz83m46n3.png)](https://res.cloudinary.com/practicaldev/image/fetch/s--mQTCJBI0--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/i/g9w3a7g1ytmxz83m46n3.png)
+![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/g9w3a7g1ytmxz83m46n3.png)
 
 The worker nodes have a Kubelet and proxy.
 
@@ -63,7 +63,7 @@ The Kubelets are the actual workhorse and the Kube-proxy handles the networking.
 
 #### **Working**
 
-[![Alt Text](https://res.cloudinary.com/practicaldev/image/fetch/s--phm0eKIo--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/i/h0hxgch8ape716dwxl0t.png)](https://res.cloudinary.com/practicaldev/image/fetch/s--phm0eKIo--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/i/h0hxgch8ape716dwxl0t.png)
+![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/h0hxgch8ape716dwxl0t.png)
 
 We provide the `yaml` file to the Kubernetes cluster through `kubectl apply` command.
 
@@ -89,7 +89,7 @@ There are various components inside the Kubernetes. Let us take a look at what a
 
 > In general terms, pods are nothing but a group of dolphins or whales.
 
-[![](https://res.cloudinary.com/practicaldev/image/fetch/s--L_UYK4z0--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://thepracticaldev.s3.amazonaws.com/i/wri3njxsoku0z6na9zj8.png)](https://res.cloudinary.com/practicaldev/image/fetch/s--L_UYK4z0--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://thepracticaldev.s3.amazonaws.com/i/wri3njxsoku0z6na9zj8.png)
+![](https://thepracticaldev.s3.amazonaws.com/i/wri3njxsoku0z6na9zj8.png)
 
 Similarly, in Kubernetes world, `pods` are a group of containers living together. A pod may have one or more containers in it.
 
@@ -247,7 +247,7 @@ In Kubernetes we can expose the service through the following ways:
         
     * The Kubernetes will start the services and then `asynchronously` starts a load-balancer.
 
-![](https://res.cloudinary.com/practicaldev/image/fetch/s--ZsEzQUH9--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_66%2Cw_800/https://thepracticaldev.s3.amazonaws.com/i/29miv7gkc1bmpz0yfdze.gif)
+![](https://thepracticaldev.s3.amazonaws.com/i/29miv7gkc1bmpz0yfdze.gif)
 
 * **Node Port**
     
@@ -255,7 +255,7 @@ In Kubernetes we can expose the service through the following ways:
         
     * We can access the services using the Kubernetes master IP.
 
-![](https://res.cloudinary.com/practicaldev/image/fetch/s--YLZmwUts--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_66%2Cw_800/https://thepracticaldev.s3.amazonaws.com/i/pactfmoby255r4pny8iq.gif)
+![](https://thepracticaldev.s3.amazonaws.com/i/pactfmoby255r4pny8iq.gif)
 
 * **Ingress**
     
@@ -265,7 +265,7 @@ In Kubernetes we can expose the service through the following ways:
         
     * The ingress controller is not a public IP or external IP.
 
-![](https://res.cloudinary.com/practicaldev/image/fetch/s--yK1H6ka8--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_66%2Cw_800/https://thepracticaldev.s3.amazonaws.com/i/09tndignuksgqrjdqlze.gif)
+![](https://thepracticaldev.s3.amazonaws.com/i/09tndignuksgqrjdqlze.gif)
 
 ### **Secrets**
 

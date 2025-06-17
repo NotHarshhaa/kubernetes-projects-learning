@@ -4,11 +4,11 @@
 
 In general, Kubernetes cluster components looks like next:
 
-[![](https://res.cloudinary.com/practicaldev/image/fetch/s--W9L6w5JE--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_880/https://rtfm.co.ua/wp-content/uploads/2019/07/maxresdefault.jpg)](https://rtfm.co.ua/wp-content/uploads/2019/07/maxresdefault.jpg)
+![](https://rtfm.co.ua/wp-content/uploads/2019/07/maxresdefault.jpg)
 
 Or a bit more simple one:
 
-[![](https://res.cloudinary.com/practicaldev/image/fetch/s--76OEflDH--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_880/https://rtfm.co.ua/wp-content/uploads/2019/07/API-server-overview.png)](https://rtfm.co.ua/wp-content/uploads/2019/07/API-server-overview.png)
+![](https://rtfm.co.ua/wp-content/uploads/2019/07/API-server-overview.png)
 
 The cluster itself consists of one or more *Master Nodes* and one or more *Worker Nodes*.
 
@@ -119,7 +119,7 @@ A Pod is a deployment unit (see [*Deployment*](https://rtfm.co.ua/en/?p=21104#De
 
 Each such a Pod is designated to run and serve an only one copy of an application: if you’ll want to make a horizontal scaling – you need to use a dedicated pod per each Worker Node.
 
-[![](https://res.cloudinary.com/practicaldev/image/fetch/s--0TTQJFiY--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_880/https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190719_141733.png)](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190719_141733.png)
+![](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190719_141733.png)
 
 Such a nodes group called *Replicated Pods* and are managed by a dedicated controller (see [*Controllers*](https://rtfm.co.ua/?p=21053#Conrtollers)).
 
@@ -160,7 +160,7 @@ Basically, services are the same Kubernetes objects as [*Pod*](https://rtfm.co.u
 
 They can be displayed as the next:
 
-[![](https://res.cloudinary.com/practicaldev/image/fetch/s--5mGTA4J2--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_880/https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190719_161337.png)](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190719_161337.png)
+![](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190719_161337.png)
 
 Here is a user who connects to a frontend application via one Service, then this frontend talks to two backend applications using two additional Services, and backends communicates to a database service via other one Service.
 
@@ -176,7 +176,7 @@ This Service type will open access to an application using a Worker Node’s sta
 
 Also, automatically will create a `ClusterIP` service for the application to route traffic from the `NodePort`.
 
-[![](https://res.cloudinary.com/practicaldev/image/fetch/s--RZ0On6_7--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_880/https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190722_110641.png)](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190722_110641.png)
+![](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190722_110641.png)
 
 Here:
 
@@ -275,13 +275,13 @@ Then in a Service’s description – we are using *selectors*:
 
 Thus if a cluster has multiple Pods with such a label – then a Service will try to route traffic to all of them:
 
-[![](https://res.cloudinary.com/practicaldev/image/fetch/s--Bf7_qfce--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_880/https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190722_113024.png)](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190722_113024.png)
+![](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190722_113024.png)
 
 In case if an application placed on multiple Worker Nodes – then a `NodePort` service will be spread between all those nodes and *30008* port will be opened on every such a node.
 
 Thus, you can access an application via a `NodePort` service using a Public IP of any Worker Node used:
 
-[![](https://res.cloudinary.com/practicaldev/image/fetch/s--b3jbYMhy--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_880/https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190722_113433.png)](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190722_113433.png)
+![](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190722_113433.png)
 
 ##### `LoadBalancer`
 
