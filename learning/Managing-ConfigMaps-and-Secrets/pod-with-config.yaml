@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-pod
+spec:
+  containers:
+  - name: app-container
+    image: nginx:1.21
+    env:
+    - name: APP_COLOR
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: APP_COLOR
+    - name: APP_MODE
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: APP_MODE 
