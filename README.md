@@ -267,7 +267,7 @@ Before diving in, ensure you have:
 |------------|----------|
 | Common Errors | [Solutions Guide](https://cloudtweaks.com/2023/01/common-kubernetes-errors/) |
 | Exit Codes | [Complete Guide](https://komodor.com/learn/exit-codes-in-containers-and-kubernetes-the-complete-guide/) |
-| Deployments | [Visual Troubleshooter](https://learnk8s.io/troubleshooting-deployments) |
+| Deployments | [Visual Troubleshooter](https://learnkube.com/troubleshooting-deployments) |
 | General Issues | [Comprehensive Guide](https://komodor.com/learn/kubernetes-troubleshooting-the-complete-guide/) |
 
 ---
