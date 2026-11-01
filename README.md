@@ -14,6 +14,7 @@
 ---
 
 ## 📋 Table of Contents
+- [What's Inside](#-whats-inside)
 - [Prerequisites](#-prerequisites)
 - [Setup & Preparation](#-setup--preparation)
 - [Learning Path](#-kubernetes-learning-path)
@@ -24,6 +25,19 @@
 - [Certifications](#-cncf-kubernetes-certifications)
 - [Infrastructure as Code](#%EF%B8%8F-kubernetes-infrastructure-as-code-iac)
 - [Cheat Sheets & Tools](#-kubernetes-cheat-sheets--tools)
+- [Contributing](#-contributing)
+
+---
+
+## 📂 What's Inside
+
+| Folder | What it contains |
+|--------|------------------|
+| [learning/](learning/) | **13 self-contained guides** with runnable YAML — from "Kubernetes for Everyone" to Ingress, Storage, HPA autoscaling, Helm, Network Policies, RBAC and Monitoring |
+| [projects/](projects/) | **4 end-to-end projects** — 10-microservices on EKS, Spring Boot on K8s, Jenkins CI/CD to Kubernetes, and an Uber-clone DevSecOps pipeline (with Jenkinsfiles) |
+| [CKAD-exercises/](CKAD-exercises/README.md) | **100+ hands-on exercises** mapped to the current [CKAD curriculum](https://github.com/cncf/curriculum), each with a hidden solution (`<details>` toggles) |
+
+> 💡 New to Kubernetes? Start at [learning/kubernetes-for-everyone](learning/kubernetes-for-everyone/README.md). Preparing for the CKAD? Go straight to [CKAD-exercises](CKAD-exercises/README.md).
 
 ---
 
@@ -33,8 +47,9 @@ Before diving in, ensure you have:
 
 | Requirement | Description |
 |------------|-------------|
-| `kubectl` | Basic command-line knowledge |
-| Containers | Understanding of Docker/containerd/cri-o |
+| Containers | Understanding of Docker/containerd/cri-o — images, layers, registries |
+| `kubectl` | Basic command-line familiarity (`get`, `apply`, `describe`, `logs`) |
+| YAML | Ability to read/edit YAML comfortably (it is indentation-sensitive!) |
 | Linux | Basic Linux commands familiarity |
 
 ---
@@ -43,20 +58,34 @@ Before diving in, ensure you have:
 
 ### Essential Tools Installation
 
-1. **Kubernetes CLI (`kubectl`)**
+1. **Kubernetes CLI (`kubectl`)** — [installation guide](https://kubernetes.io/docs/tasks/tools/)
+
    ```bash
-   # Installation guide available at:
-   https://kubernetes.io/docs/tasks/tools/
+   # Linux example
+   curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+   sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+   # verify
+   kubectl version --client
    ```
 
-2. **Local Kubernetes Cluster**
-   - Minikube
-   - kind
-   - k3s
+2. **Local Kubernetes Cluster** — pick one:
+
+   - [Minikube](https://minikube.sigs.k8s.io/docs/start/) — `minikube start`
+   - [kind](https://kind.sigs.k8s.io/docs/user/quick-start/) — `kind create cluster`
+   - [k3s](https://docs.k3s.io/) — `curl -sfL https://get.k3s.io | sh -`
+   - [Docker Desktop](https://www.docker.com/products/docker-desktop/) / [Rancher Desktop](https://rancherdesktop.io/) — enable the built-in Kubernetes
+
+   Verify with `kubectl get nodes` — you should see at least one node in `Ready` status.
 
 📚 **Detailed Setup Guide**: [Kubernetes CLI & Cluster Setup](https://gist.github.com/NotHarshhaa/854ed5c12fff07acde88faf95b9decff)
 
-> 💡 **Pro Tip**: Enable kubectl autocompletion for improved productivity!
+> 💡 **Pro Tip**: Enable kubectl autocompletion and aliases for improved productivity!
+>
+> ```bash
+> source <(kubectl completion bash)   # or zsh — add to ~/.bashrc to persist
+> alias k=kubectl                     # you'll type it hundreds of times
+> ```
 
 ---
 
@@ -259,6 +288,11 @@ Before diving in, ensure you have:
     <td>Terminal UI to interact with clusters</td>
   </tr>
   <tr>
+    <td><a href="https://github.com/ahmetb/kubectx">kubectx / kubens</a></td>
+    <td>CLI Tool</td>
+    <td>Switch between clusters and namespaces instantly</td>
+  </tr>
+  <tr>
     <td><a href="https://github.com/derailed/popeye">Popeye</a></td>
     <td>Cluster Sanitizer</td>
     <td>Scans live clusters for misconfigurations</td>
@@ -285,6 +319,16 @@ Before diving in, ensure you have:
 ---
 
 ## 📖 Kubernetes Guides & Best Practices
+
+### 🧭 In this repository
+| Topic | Guide |
+|-------|-------|
+| Ingress & traffic routing | [learning/Ingress-and-Traffic-Routing](learning/Ingress-and-Traffic-Routing/README.md) |
+| Storage & Persistent Volumes | [learning/Storage-PersistentVolumes](learning/Storage-PersistentVolumes/README.md) |
+| Monitoring & Logging (Prometheus, EFK) | [learning/Monitoring-and-Logging](learning/Monitoring-and-Logging/README.md) |
+| RBAC & Network Policies | [learning/RBAC-Access-Control](learning/RBAC-Access-Control/README.md) • [learning/Network-Policies-in-K8s](learning/Network-Policies-in-K8s/README.md) |
+| ConfigMaps & Secrets | [learning/Managing-ConfigMaps-and-Secrets](learning/Managing-ConfigMaps-and-Secrets/README.md) |
+| Autoscaling (HPA) & Helm | [learning/Autoscaling-HPA](learning/Autoscaling-HPA/README.md) • [learning/Helm-Package-Manager](learning/Helm-Package-Manager/README.md) |
 
 ### 🌐 Networking
 - [The Kubernetes Networking Guide](https://www.tkng.io/)
@@ -381,6 +425,8 @@ Before diving in, ensure you have:
 | Terraform | Infrastructure | [Documentation](https://www.terraform.io/) |
 | Pulumi | Multi-language IaC | [Repository](https://github.com/pulumi/pulumi) |
 | Skaffold | Development | [Repository](https://github.com/GoogleContainerTools/skaffold) |
+| Argo CD | GitOps CD | [Repository](https://github.com/argoproj/argo-cd) — used in the [Jenkins+ArgoCD project](projects/Kubernetes-Using-Jenkins/README.md) |
+| Flux | GitOps Toolkit | [Repository](https://github.com/fluxcd/flux2) |
 
 ---
 
