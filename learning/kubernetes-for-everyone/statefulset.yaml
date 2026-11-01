@@ -1,3 +1,26 @@
+# StatefulSet — stable identities + per-Pod storage.
+#
+# Fixes from the previous version:
+#   * k8s.gcr.io is dead (shut down in 2023) and nginx-slim:0.8 is ancient —
+#     use a maintained image
+#   * a StatefulSet REQUIRES a headless Service (clusterIP: None) named by
+#     spec.serviceName — it was missing, so the Pods could never get DNS names
+#   * storageClassName: "my-storage-class" only works if that StorageClass
+#     exists in your cluster — commented out so the cluster default is used
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx                      # must match spec.serviceName below
+  labels:
+    app: nginx
+spec:
+  clusterIP: None                  # headless — gives each Pod a DNS name like web-0.nginx.default.svc.cluster.local
+  selector:
+    app: nginx
+  ports:
+  - name: web
+    port: 80
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -5,30 +28,30 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: nginx # has to match .spec.template.metadata.labels
-  serviceName: "nginx"
-  replicas: 3 # by default is 1
+      app: nginx                   # has to match .spec.template.metadata.labels
+  serviceName: "nginx"             # name of the headless Service above
+  replicas: 3
   template:
     metadata:
       labels:
-        app: nginx # has to match .spec.selector.matchLabels
+        app: nginx                 # has to match .spec.selector.matchLabels
     spec:
       terminationGracePeriodSeconds: 10
       containers:
       - name: nginx
-        image: k8s.gcr.io/nginx-slim:0.8
+        image: nginx:1.25-alpine
         ports:
         - containerPort: 80
           name: web
         volumeMounts:
         - name: www
           mountPath: /usr/share/nginx/html
-  volumeClaimTemplates:
+  volumeClaimTemplates:            # one PVC per Pod (www-web-0, www-web-1, ...)
   - metadata:
       name: www
     spec:
       accessModes: [ "ReadWriteOnce" ]
-      storageClassName: "my-storage-class"
+      # storageClassName: "my-storage-class"   # optional — pin to a specific StorageClass; omit to use the cluster default
       resources:
         requests:
           storage: 1Gi

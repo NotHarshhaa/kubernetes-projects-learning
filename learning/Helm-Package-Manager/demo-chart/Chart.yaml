@@ -1,0 +1,6 @@
+apiVersion: v2
+name: demo-app
+description: A minimal Helm chart for learning — deploys nginx with a Service
+type: application
+version: 0.1.0        # chart version — bump when chart contents change
+appVersion: "1.25"    # version of the app the chart deploys

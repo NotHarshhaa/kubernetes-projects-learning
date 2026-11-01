@@ -1,0 +1,48 @@
+# Static PV + PVC + Pod demo.
+#
+# hostPath is used here because it works on any single-node cluster (minikube/kind)
+# with zero setup. NEVER use hostPath in production — use StorageClasses and dynamic
+# provisioning instead (see README).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: demo-pv
+  labels:
+    type: local
+spec:
+  storageClassName: manual           # PV and PVC must use the same class to bind
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain   # Retain | Delete | Recycle(deprecated)
+  hostPath:
+    path: "/mnt/demo-data"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo-pvc
+spec:
+  storageClassName: manual           # matches the PV above
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi                 # binds to any PV with >= 500Mi free
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pvc-consumer
+spec:
+  containers:
+  - name: app
+    image: nginx:1.25-alpine
+    volumeMounts:
+    - name: data
+      mountPath: /usr/share/nginx/html
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: demo-pvc

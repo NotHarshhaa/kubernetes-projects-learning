@@ -97,10 +97,53 @@ Before diving in, ensure you have:
 </table>
 
 ### Advanced Topics
-- ConfigMaps and Secrets Management
-- Network Policies Implementation
-- RBAC Access Control
-- Monitoring and Logging Solutions
+<table>
+  <tr>
+    <th>Level</th>
+    <th>Topic</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>Intermediate</td>
+    <td><a href="learning/Managing-ConfigMaps-and-Secrets/README.md">ConfigMaps & Secrets</a></td>
+    <td>Configuration and sensitive data management</td>
+  </tr>
+  <tr>
+    <td>Intermediate</td>
+    <td><a href="learning/Ingress-and-Traffic-Routing/README.md">Ingress & Traffic Routing</a></td>
+    <td>HTTP routing, TLS termination, ingress controllers</td>
+  </tr>
+  <tr>
+    <td>Intermediate</td>
+    <td><a href="learning/Storage-PersistentVolumes/README.md">Storage & Persistent Volumes</a></td>
+    <td>PV, PVC, StorageClasses and durable state</td>
+  </tr>
+  <tr>
+    <td>Intermediate</td>
+    <td><a href="learning/Autoscaling-HPA/README.md">Autoscaling (HPA)</a></td>
+    <td>Scale workloads automatically on CPU/memory metrics</td>
+  </tr>
+  <tr>
+    <td>Intermediate</td>
+    <td><a href="learning/Helm-Package-Manager/README.md">Helm Package Manager</a></td>
+    <td>Package, version and deploy apps as charts</td>
+  </tr>
+  <tr>
+    <td>Advanced</td>
+    <td><a href="learning/Network-Policies-in-K8s/README.md">Network Policies</a></td>
+    <td>Pod-to-pod traffic control and micro-segmentation</td>
+  </tr>
+  <tr>
+    <td>Advanced</td>
+    <td><a href="learning/RBAC-Access-Control/README.md">RBAC Access Control</a></td>
+    <td>Roles, bindings and least-privilege access</td>
+  </tr>
+  <tr>
+    <td>Advanced</td>
+    <td><a href="learning/Monitoring-and-Logging/README.md">Monitoring & Logging</a></td>
+    <td>Prometheus, Grafana and the EFK stack</td>
+  </tr>
+</table>
 
 > 🔄 New topics are regularly added to keep content fresh and relevant!
 

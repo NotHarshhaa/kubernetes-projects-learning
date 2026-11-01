@@ -1,5 +1,26 @@
-livenessProbe:
- httpGet:
-   path: hello-world/health
-   port: http
- initialDelaySeconds: 120
+# Liveness probe — a complete, runnable Pod.
+#
+# The livenessProbe restarts the container when it fails (per restartPolicy).
+# The netcat one-liner below answers HTTP 200 on port 8080 so the probe succeeds.
+# Copy the livenessProbe block into any container spec (see README).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello-world-liveness
+  labels:
+    app: hello
+spec:
+  containers:
+  - name: hello-world-container
+    image: busybox:1.36
+    command: ['sh', '-c', 'while true; do printf "HTTP/1.1 200 OK\r\n\r\n" | nc -l -p 8080; done']
+    ports:
+    - name: http                 # named port — probes can reference it as "port: http"
+      containerPort: 8080
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: http
+      initialDelaySeconds: 20   # wait 20s before the first probe
+      periodSeconds: 15         # probe every 15s
+      failureThreshold: 3       # 3 consecutive failures => container restarted

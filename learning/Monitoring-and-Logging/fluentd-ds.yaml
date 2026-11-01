@@ -1,3 +1,15 @@
+# Fluentd DaemonSet shipping node logs to Elasticsearch (ECK).
+#
+# Fixes from the previous version:
+#   * tolerates the CURRENT control-plane taint (node-role.kubernetes.io/control-plane),
+#     not only the legacy "master" key
+#   * mounts /var/log/pods — modern clusters (containerd) write pod logs there,
+#     /var/lib/docker/containers only exists on legacy Docker nodes
+#   * Elasticsearch credentials wired to the ECK-generated secret
+#
+# Prereqs (see README): namespace "logging", ECK operator, Elasticsearch CR named
+# "logging" (elasticsearch.yaml). The fluentd ES output expects FLUENT_ELASTICSEARCH_USER
+# and FLUENT_ELASTICSEARCH_PASSWORD, so they are provided explicitly below.
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -14,27 +26,53 @@ spec:
       labels:
         app: fluentd
     spec:
+      serviceAccountName: fluentd
       tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
       - key: node-role.kubernetes.io/master
+        operator: Exists
         effect: NoSchedule
       containers:
       - name: fluentd
         image: fluent/fluentd-kubernetes-daemonset:v1.14-debian-elasticsearch7-1
         env:
-          - name: FLUENT_ELASTICSEARCH_HOST
-            value: "elasticsearch"
-          - name: FLUENT_ELASTICSEARCH_PORT
-            value: "9200"
+        - name: FLUENT_ELASTICSEARCH_HOST
+          value: "logging-es-http.logging.svc.cluster.local"   # ECK service name for the Elasticsearch CR "logging"
+        - name: FLUENT_ELASTICSEARCH_PORT
+          value: "9200"
+        - name: FLUENT_ELASTICSEARCH_USER
+          value: "elastic"
+        - name: FLUENT_ELASTICSEARCH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: logging-es-elastic-user                    # created automatically by ECK
+              key: elastic
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+          limits:
+            cpu: 500m
+            memory: 500Mi
         volumeMounts:
         - name: varlog
           mountPath: /var/log
-        - name: varlibdockercontainers
+          readOnly: true
+        - name: podlogs                # containerd writes pod logs here (k8s >= 1.14-ish)
+          mountPath: /var/log/pods
+          readOnly: true
+        - name: dockerlogs             # legacy Docker nodes only; harmless if missing
           mountPath: /var/lib/docker/containers
           readOnly: true
       volumes:
       - name: varlog
         hostPath:
           path: /var/log
-      - name: varlibdockercontainers
+      - name: podlogs
         hostPath:
-          path: /var/lib/docker/containers 
+          path: /var/log/pods
+      - name: dockerlogs
+        hostPath:
+          path: /var/lib/docker/containers

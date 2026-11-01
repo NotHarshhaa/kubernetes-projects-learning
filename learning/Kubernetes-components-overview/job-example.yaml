@@ -1,17 +1,19 @@
+# Job — runs Pods to completion (unlike Deployments, which keep Pods running).
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: job-example
 spec:
-  completions: 2
-  parallelism: 2
+  completions: 2                   # 2 successful Pods in total...
+  parallelism: 2                   # ...running 2 at a time
+  backoffLimit: 4                  # give up after 4 failed Pod attempts
   template:
     metadata:
       name: counter
     spec:
+      restartPolicy: Never         # Jobs require OnFailure or Never
       containers:
       - name: counter
-        image: ubuntu
+        image: ubuntu:22.04
         command: ["bash"]
-        args: ["-c",  "for i in {1..10}; do echo $i; done"]
-      restartPolicy: Never
+        args: ["-c", "for i in {1..10}; do echo $i; done"]

@@ -1,0 +1,13 @@
+# ConfigMap whose values come from a properties-style file.
+#
+# Equivalent imperative command:
+#   kubectl create configmap app-config-file --from-file=app.properties
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config-file
+data:
+  app.properties: |
+    LOG_LEVEL=debug
+    MAX_CONNECTIONS=100
+    FEATURE_NEW_UI=true

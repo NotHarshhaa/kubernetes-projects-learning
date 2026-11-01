@@ -1,0 +1,37 @@
+# HorizontalPodAutoscaler — scales the number of replicas of web-app
+# between 2 and 10 to keep average CPU utilization near 60%.
+#
+# Requires the metrics-server to be installed:
+#   minikube addons enable metrics-server
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web-app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web-app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60     # scale up above 60% of the requested CPU, down below it
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: AverageValue
+        averageValue: 200Mi        # scale on absolute memory usage as a second signal
+  behavior:                        # optional — tune reaction speed
+    scaleDown:
+      stabilizationWindowSeconds: 300   # wait 5 min before scaling down (avoids flapping)
+    scaleUp:
+      policies:
+      - type: Pods
+        value: 2                  # add at most 2 pods...
+        periodSeconds: 30         # ...per 30 seconds

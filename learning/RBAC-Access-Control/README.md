@@ -45,10 +45,19 @@ RBAC is a method of regulating access to computer or network resources based on 
   - Binding strategies
   - Security considerations
 
+## Files in this folder
+
+| File | Purpose |
+|------|---------|
+| `service-account.yaml` | ServiceAccount the workload will run as |
+| `role.yaml` | `pod-manager` Role — full CRUD on pods + read pod logs (namespace: default) |
+| `role-binding.yaml` | Binds `pod-manager` to the ServiceAccount |
+| `pod-with-sa.yaml` | Pod running with the custom ServiceAccount |
+
 ## Prerequisites
 - Kubernetes cluster with RBAC enabled
   - Most clusters enable it by default
-  - Check with --authorization-mode flag
+  - Check with `kubectl api-versions | grep rbac.authorization.k8s.io`
 - kubectl CLI tool with admin access
 - Basic understanding of:
   - Kubernetes API resources
@@ -68,7 +77,8 @@ metadata:
 
 ### 2. Defining Roles
 ```yaml
-# Example of a pod-reader role
+# Example of a pod-reader role (read-only). role.yaml in this folder contains a
+# "pod-manager" variant with full CRUD on pods instead.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -113,9 +123,9 @@ roleRef:
 
 ### 3. Service Accounts
 - One service account per application
-- Automate token rotation
-- Monitor token usage
-- Implement pod security policies
+- Since Kubernetes 1.24, pods receive short-lived, auto-rotated **projected tokens** (no more permanent token Secrets)
+- Set `automountServiceAccountToken: false` when the app never talks to the API
+- Apply [Pod Security Admission](https://kubernetes.io/docs/concepts/security/pod-security-admission/) standards to restrict what pods can do (PodSecurityPolicy was removed in Kubernetes 1.25)
 
 ### 4. Security Considerations
 - Regular audit of permissions
@@ -127,32 +137,32 @@ roleRef:
 
 ### 1. Create Required Objects
 ```bash
-# Create service account
-kubectl create -f service-account.yaml
-
-# Create role
-kubectl create -f role.yaml
-
-# Create role binding
-kubectl create -f role-binding.yaml
+# All from this folder:
+kubectl apply -f service-account.yaml
+kubectl apply -f role.yaml
+kubectl apply -f role-binding.yaml
 
 # Deploy pod with service account
-kubectl create -f pod-with-sa.yaml
+kubectl apply -f pod-with-sa.yaml
 ```
 
 ### 2. Verify Setup
 ```bash
 # Check service account
-kubectl get serviceaccount
+kubectl get serviceaccount app-service-account
 
 # Verify role
-kubectl get role
+kubectl get role pod-manager
 
 # Check bindings
-kubectl get rolebinding
+kubectl get rolebinding manage-pods
 
-# Test permissions
-kubectl auth can-i list pods --as system:serviceaccount:default:app-service-account
+# Test permissions (impersonation)
+kubectl auth can-i list pods --as system:serviceaccount:default:app-service-account   # yes
+kubectl auth can-i delete nodes --as system:serviceaccount:default:app-service-account # no
+
+# Full permission dump for the identity
+kubectl auth can-i --list --as system:serviceaccount:default:app-service-account
 ```
 
 ## Troubleshooting
@@ -216,5 +226,5 @@ kubectl describe sa service-account-name
 
 - [Official Kubernetes RBAC Documentation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
 - [RBAC Good Practices](https://kubernetes.io/docs/concepts/security/rbac-good-practices/)
-- [Using RBAC Authorization](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
+- [Authentication Overview](https://kubernetes.io/docs/concepts/security/authentication/)
 - [Kubernetes Security Best Practices](https://kubernetes.io/docs/concepts/security/overview/) 

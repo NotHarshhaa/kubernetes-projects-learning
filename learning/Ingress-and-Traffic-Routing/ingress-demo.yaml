@@ -1,0 +1,97 @@
+# Ingress demo — two apps behind one Ingress, routed by path.
+#
+# Requires an ingress controller (e.g. ingress-nginx):
+#   minikube addons enable ingress
+#   # or: helm install ingress-nginx ingress-nginx/ingress-nginx
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coffee
+  labels:
+    app: coffee
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: coffee
+  template:
+    metadata:
+      labels:
+        app: coffee
+    spec:
+      containers:
+      - name: coffee
+        image: hashicorp/http-echo:0.2.3
+        args: ["-text=coffee-v1"]
+        ports:
+        - containerPort: 5678
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: coffee-svc
+spec:
+  selector:
+    app: coffee
+  ports:
+  - port: 80
+    targetPort: 5678
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tea
+  labels:
+    app: tea
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tea
+  template:
+    metadata:
+      labels:
+        app: tea
+    spec:
+      containers:
+      - name: tea
+        image: hashicorp/http-echo:0.2.3
+        args: ["-text=tea-v1"]
+        ports:
+        - containerPort: 5678
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tea-svc
+spec:
+  selector:
+    app: tea
+  ports:
+  - port: 80
+    targetPort: 5678
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cafe-ingress
+spec:
+  ingressClassName: nginx            # must match your controller's --ingress-class
+  rules:
+  - host: cafe.local                 # point this at your cluster IP (see README)
+    http:
+      paths:
+      - path: /coffee
+        pathType: Prefix
+        backend:
+          service:
+            name: coffee-svc
+            port:
+              number: 80
+      - path: /tea
+        pathType: Prefix
+        backend:
+          service:
+            name: tea-svc
+            port:
+              number: 80

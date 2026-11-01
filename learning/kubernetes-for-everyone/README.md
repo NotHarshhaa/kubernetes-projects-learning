@@ -16,30 +16,30 @@ Kubernetes is the `de facto` standard for running containerized applications.
 
 Aptly named, **Kubernetes** is a pilot (or) **helmsman** that helps you to sail the container world. **Kubernetes** is a portable and extensible system built by the community for the community.
 
-As Kelsey, correctly quotes
+As Kelsey Hightower correctly puts it:
 
 > Kubernetes does the things that the very best system administrator would do automation, failover, centralized logging, monitoring. It takes what we’ve learned in the DevOps community and makes it default, out of the box.
 
 In order to work with Kubernetes, it is very important to understand
 
 * How Kubernetes works?
-    
+
 * How Kubernetes is architected?
-    
+
 * What are the various components in Kubernetes?
-    
+
 
 Let us start hacking on Kubernetes.
 
 ## **How does Kubernetes work?**
 
-The Kubernetes run in a highly available cluster mode. Each Kubernetes cluster consists of one or more master node and a few worker nodes.
+Kubernetes runs in a highly available cluster mode. Each Kubernetes cluster consists of one or more control-plane nodes (formerly called *master nodes*) and a few worker nodes.
 
 ![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/gkc90lkkd9cdfqjx2i2m.png)
 
-### **Master Node**
+### **Control Plane (Master Node)**
 
-The master node consists of an API server, Scheduler, Controllers, etcd. This node is called the `control plane` of Kubernetes. This control plane is the `brain` of Kubernetes.
+The control plane consists of the API server, Scheduler, Controllers, and etcd. This is the `brain` of Kubernetes.
 
 That is the control plane is responsible for all the actions inside Kubernetes.
 
@@ -53,7 +53,7 @@ The `controllers` are responsible for running the resource controllers.
 
 The `etcd` is a storage for the Kubernetes. It is key-value storage.
 
-### **Node**
+### **Node (Worker Node)**
 
 ![Alt Text](https://dev-to-uploads.s3.amazonaws.com/i/g9w3a7g1ytmxz83m46n3.png)
 
@@ -67,17 +67,17 @@ The Kubelets are the actual workhorse and the Kube-proxy handles the networking.
 
 We provide the `yaml` file to the Kubernetes cluster through `kubectl apply` command.
 
-The `apply` command calls the API server, which will send the information to the `controller` and simultaneously stores the information to the `etcd`.
+The `apply` command calls the API server, which stores the information in `etcd` and wakes up the relevant `controllers`.
 
-The `etcd` then replicate this information across multiple nodes to survive any node failure.
+The `etcd` replicates this information across all control-plane instances (using the Raft consensus algorithm) so the cluster state survives node failures.
 
-The `controller` will check whether the given state matches the desired state. If it is not it initiates the pod deployment, by sending the information to the `scheduler`
+The `controller` will check whether the current state matches the desired state. If it does not, it initiates the pod deployment by sending the information to the `scheduler`.
 
-The checks are called as the **reconciliation loop** that runs inside the Kubernetes. The job of this loop is to validate whether the state requested is maintained correctly. If the expected state and actual states mismatch this loop will do the necessary actions to convert the actual state into the expected state.
+These checks are called the **reconciliation loop** that runs inside Kubernetes. The job of this loop is to validate whether the state requested is maintained correctly. If the expected state and actual state mismatch, this loop will do the necessary actions to convert the actual state into the expected state.
 
-The `scheduler` has a queue inside. Once the message is received in the queue.
+The `scheduler` has a queue inside. Once the message is received in the queue, the `scheduler` picks a suitable worker node (based on resources, taints, affinity, etc.) and binds the Pod to it.
 
-The `scheduler` will then invoke the kubelet to do the intended action such as deploying the container.
+The `kubelet` on that node — which constantly watches the API server for Pods assigned to it — then pulls the image and starts the container.
 
 This is a 10000 feet bird view of how Kubernetes does the deployment.
 
@@ -91,9 +91,9 @@ There are various components inside the Kubernetes. Let us take a look at what a
 
 ![](https://thepracticaldev.s3.amazonaws.com/i/wri3njxsoku0z6na9zj8.png)
 
-Similarly, in Kubernetes world, `pods` are a group of containers living together. A pod may have one or more containers in it.
+Similarly, in the Kubernetes world, `pods` are a group of containers living together. A pod may have one or more containers in it.
 
-The `pod` is the smallest unit of deployment in Kubernetes. Usually, the containers that cannot live outside the scope of another container are grouped to form a pod.
+The `pod` is the smallest deployable unit in Kubernetes. Containers that are tightly coupled — those that need to share network, storage, and lifecycle — are grouped into a single pod.
 
 This is how you define a pod in Kubernetes.
 
@@ -107,26 +107,23 @@ metadata:
 spec:
   containers:
   - name: myapp-container
-    image: busybox
+    image: busybox:1.36
     command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
 ```
 
 * *apiVersion* denotes the Kubernetes cluster which version of API to use when parsing and executing this file.
-    
+
 * *kind* defines what is the **kind** of Kubernetes object, this file will refer to.
-    
+
 * *metadata* includes all the necessary metadata to identify the Pod.
-    
+
 * *spec* includes the container information.
-    
 
 ### **Deployments**
 
-While pods are the unit of deployment. For an application to work, it needs one or more pods. Kubernetes considers this entire set as deployment.
+While pods are the unit of deployment, for an application to work it needs one or more pods. A `Deployment` describes the desired set of pods (image, replica count, update strategy) and delegates the actual pod management to a `ReplicaSet` it creates behind the scenes.
 
-Thus deployment is recorded information about pods. Kubernetes uses this deployment information to manage and monitor the applications that are deployed in them.
-
-The below file is the sample deployment file that tells the Kubernetes to create a deployment of `nginx` using the `nginx:1.7.9` container.
+The below file is the sample deployment file that tells Kubernetes to create a deployment of `nginx` using the `nginx:1.25-alpine` container.
 
 ```yaml
 apiVersion: apps/v1
@@ -139,7 +136,7 @@ spec:
   replicas: 3
   selector:
     matchLabels:
-      app: nginx
+      app: nginx          # must match the template labels below
   template:
     metadata:
       labels:
@@ -147,24 +144,40 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: nginx:1.7.9
+        image: nginx:1.25-alpine
         ports:
         - containerPort: 80
 ```
 
-### **Replicasets**
+> ⚠️ The `spec.selector.matchLabels` must match `spec.template.metadata.labels` — a mismatched selector is one of the most common YAML errors and the API server will reject it.
 
-While deployment tells the Kubernetes what containers are needed for your application and how many replicas to run. The `replica sets` are the ones that ensure those replicas are up and running.
+### **ReplicaSets**
 
-ReplicaSet is responsible for managing and monitoring the replicas.
+While deployment tells Kubernetes what containers are needed for your application and how many replicas to run, the `ReplicaSets` are the ones that ensure those replicas are up and running.
+
+ReplicaSet is responsible for managing and monitoring the replicas. You rarely create one directly — Deployments manage them for you.
 
 ### **StatefulSet**
 
 Often times we will need to have persistent storage or permanent network identifiers or ordered deployment, scaling, and update. During those times we will use `StatefulSets`.
 
-You can define the StatefulSet like below:
+A StatefulSet **requires** a *headless Service* (`clusterIP: None`) that gives each Pod a stable DNS name like `web-0.nginx.default.svc.cluster.local`.
 
 ```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  clusterIP: None
+  selector:
+    app: nginx
+  ports:
+  - name: web
+    port: 80
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -172,18 +185,18 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: nginx # has to match .spec.template.metadata.labels
+      app: nginx          # has to match .spec.template.metadata.labels
   serviceName: "nginx"
-  replicas: 3 # by default is 1
+  replicas: 3
   template:
     metadata:
       labels:
-        app: nginx # has to match .spec.selector.matchLabels
+        app: nginx        # has to match .spec.selector.matchLabels
     spec:
       terminationGracePeriodSeconds: 10
       containers:
       - name: nginx
-        image: k8s.gcr.io/nginx-slim:0.8
+        image: nginx:1.25-alpine
         ports:
         - containerPort: 80
           name: web
@@ -195,23 +208,22 @@ spec:
       name: www
     spec:
       accessModes: [ "ReadWriteOnce" ]
-      storageClassName: "my-storage-class"
       resources:
         requests:
           storage: 1Gi
 ```
 
-We mounted the volume and also claimed the volume storage.
+We mounted the volume and also claimed the volume storage with a `volumeClaimTemplates` — Kubernetes creates one PVC per Pod (`www-web-0`, `www-web-1`, ...). See [Storage & Persistent Volumes](../Storage-PersistentVolumes/README.md) for how that works.
 
 ### **DaemonSet**
 
-Sometimes you need to run a pod on every node of your Kubernetes cluster. For example, if you are collecting metrics from every node, then we will need to schedule some pods on every node that collects the metrics. We can use DaemonSet for those nodes.
+Sometimes you need to run a pod on every node of your Kubernetes cluster. For example, if you are collecting metrics from every node, then we will need to schedule some pods on every node that collects the metrics. We can use DaemonSet for those nodes. See [Deploying DaemonSets](../Deploy-DaemonSets-Service-in-Kubernetes/README.md) for a hands-on guide.
 
 ### **Services**
 
 The deployments define the actual state of the application running on the containers. Users will need to access the application or you might need to connect to the container to debug it. Services will help you.
 
-The services are the Kubernetes object that provides access to the containers from the external world or between themselves.
+The services are the Kubernetes object that provides access to the containers from the external world or between themselves. Pods are ephemeral — their IPs change every time they are recreated — so Services provide a stable address that selects Pods by label.
 
 We can define the service like below:
 
@@ -222,14 +234,14 @@ metadata:
   name: my-service
 spec:
   selector:
-    app: MyApp
+    app: myapp            # must match the labels on the target Pods
   ports:
   - protocol: TCP
-    port: 80
-    targetPort: 9376
+    port: 80              # port the Service exposes
+    targetPort: 80        # port the container listens on
 ```
 
-The above `service` maps incoming connections on port `80` to the targetPort `9376`.
+The above `service` forwards traffic it receives on port `80` to the matching Pods on their `targetPort`.
 
 > You can consider the services as the load balancer, proxy or traffic router in the world of Kubernetes.
 
@@ -242,34 +254,34 @@ While service provides a way to connect to the pods, networking determines how t
 In Kubernetes we can expose the service through the following ways:
 
 * **Load Balancer**
-    
+
     * The Load Balancer provides an external IP through which we can access the pods running inside.
-        
-    * The Kubernetes will start the services and then `asynchronously` starts a load-balancer.
+
+    * The Kubernetes will start the services and then `asynchronously` starts a load-balancer (requires a cloud provider or MetalLB on bare metal).
 
 ![](https://thepracticaldev.s3.amazonaws.com/i/29miv7gkc1bmpz0yfdze.gif)
 
 * **Node Port**
-    
-    * Each of the services will have a dynamically assigned port.
-        
-    * We can access the services using the Kubernetes master IP.
+
+    * Each service of this type gets a static high port (in the 30000–32767 range).
+
+    * We can access the service using the IP of **any worker node** — `<node-ip>:<node-port>`. (Note: not the control-plane IP, as often mis-stated.)
 
 ![](https://thepracticaldev.s3.amazonaws.com/i/pactfmoby255r4pny8iq.gif)
 
 * **Ingress**
-    
+
     * Each of the services will have a separate address.
-        
-    * These services are then accessed by an ingress controller.
-        
-    * The ingress controller is not a public IP or external IP.
+
+    * These services are then accessed by an ingress controller, which routes HTTP/HTTPS traffic based on hostnames and paths.
+
+    * See [Ingress & Traffic Routing](../Ingress-and-Traffic-Routing/README.md) for a full walkthrough.
 
 ![](https://thepracticaldev.s3.amazonaws.com/i/09tndignuksgqrjdqlze.gif)
 
 ### **Secrets**
 
-Often for the applications, we need to provide passwords, tokens, etc., Kubernetes provides `secrets` object to store and manage the sensitive information. We can create a secret like below:
+Often for the applications, we need to provide passwords, tokens, etc. Kubernetes provides the `secrets` object to store and manage sensitive information. We can create a secret like below:
 
 ```yaml
 apiVersion: v1
@@ -277,12 +289,33 @@ kind: Secret
 metadata:
   name: mysecret
 type: Opaque
-stringData:
-  config.yaml: |-
-    apiUrl: "https://my.api.com/api/v1"
-    username: {{username}}
-    password: {{password}}
+stringData:                # plain text — the API server base64-encodes it for you
+  username: admin
+  password: s3cr3t-p4ssw0rd
 ```
+
+> ⚠️ Note: Secrets are **encoded, not encrypted**. Anyone with read access to the Secret can decode the values. Combine Secrets with RBAC and encryption-at-rest, and consider external vault solutions for production. See [Managing ConfigMaps and Secrets](../Managing-ConfigMaps-and-Secrets/README.md).
+
+## Try it yourself 🧪
+
+All the YAML above lives in this folder — apply it to any cluster (Minikube, kind, k3s):
+
+```bash
+# from this directory
+kubectl apply -f pod.yaml
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+
+# see what you created
+kubectl get pods
+kubectl get deployments
+kubectl get svc
+
+# clean up
+kubectl delete -f service.yaml -f deployment.yaml -f pod.yaml
+```
+
+> 💡 To test the Service without a LoadBalancer, run `kubectl port-forward svc/my-service 8080:80` and open `http://localhost:8080`.
 
 ## Best practices
 
@@ -294,11 +327,11 @@ Few best practices to follow while working with Kubernetes are:
 
 The `yaml` files are the heart of Kubernetes configuration.
 
-We can define multiple Kubernetes configurations in a single `yaml`. While `yaml` reduces the boilerplate when compared with `JSON`. But still `yaml` files are space-sensitive and error-prone.
+We can define multiple Kubernetes configurations in a single `yaml`. While `yaml` reduces the boilerplate when compared with `JSON`, `yaml` files are still space-sensitive and error-prone.
 
 So always try to minimize the size of `yaml` files.
 
-For every service, deployment, secrets, and other Kubernetes objects define them in a separate `yaml` file.
+For every service, deployment, secrets, and other Kubernetes object define them in a separate `yaml` file.
 
 > Split your yaml files into smaller files.
 
@@ -310,13 +343,13 @@ Kubernetes automatically restarts the pods when there is a crash or upgrade or i
 
 Alpine images are your friends. Use the Alpine images as the base and then add in components or libraries to the images only when they are absolutely necessary.
 
-> Always remember to have smaller image sizes. Use `builder pattern` to create the images from Alpine images.
+> Always remember to have smaller image sizes. Use the `builder pattern` (multi-stage builds) to create the images from Alpine images.
 
 #### Healthy - Zombie Process
 
-Docker containers will terminate only when all the processes running inside the container are terminated. The Docker containers will return `healthy` status even when one of the processes is killed. This creates a `Healthy-Zombie` process.
+Containers will terminate only when all the processes running inside the container are terminated. Containers can report `healthy` status even when one of the processes is killed. This creates a `Healthy-Zombie` process.
 
-Try to have a single process inside the container. If running a single process is not possible then try to have a mechanism to figure out whether all the required processes are running.
+Try to have a single process inside the container. If running a single process is not possible then try to have a mechanism (like a health probe, see [What is a Pod](../What-is-Pod-in-Kubernetes/README.md)) to figure out whether all the required processes are running.
 
 #### Clean up unused resources
 
@@ -336,7 +369,7 @@ resources:
         cpu: "500m"
 ```
 
-The `requests` are the limits that the container is guaranteed to get. The `limits` are is the maximum or minimum resource a container is allowed to use.
+The `requests` are the resources the container is *guaranteed* to get (the scheduler uses them to place Pods). The `limits` are the *maximum* resources a container is allowed to use — exceeding the memory limit gets the container killed (OOMKilled), exceeding the CPU limit just throttles it.
 
 > Each container in the pod can request and limit their resources.
 
@@ -345,25 +378,33 @@ The `requests` are the limits that the container is guaranteed to get. The `limi
 Monitor and manage your services using `RED` pattern.
 
 * Requests
-    
+
 * Errors
-    
+
 * Duration
-    
+
 
 Track the requests, errors in the response and the duration to receive the response. Based on this information, tweak your service to receive optimum performance.
 
 For the resources, use the `USE` pattern.
 
 * Utilization
-    
+
 * Saturation
-    
+
 * Errors
-    
+
 
 Monitor the resource utilization and how much the resources are saturated and what are the errors. Based on this information, tweak your resources to optimize resource allocation.
 
-Hopefully, this might have given you a brief overview of `Kubernetes`. Head over [kubernetes.io](https://kubernetes.io/) for more information on Kubernetes.
+## What's next?
+
+Continue the learning path:
+
+1. [What is a Pod in Kubernetes](../What-is-Pod-in-Kubernetes/README.md) — pods, lifecycle, probes, resources
+2. [Deploying an Application on Kubernetes](../Deploying-an-Application-on-Kubernetes/README.md) — end-to-end deployment
+3. [Kubernetes Components Overview](../Kubernetes-components-overview/README.md) — deep architecture dive
+
+Head over [kubernetes.io](https://kubernetes.io/) for more information on Kubernetes.
 
 ### **If you like this article, please share with others. ❤️**

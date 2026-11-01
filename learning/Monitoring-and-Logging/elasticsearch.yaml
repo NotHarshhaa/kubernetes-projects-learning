@@ -1,0 +1,13 @@
+# Elasticsearch custom resource — requires the ECK operator to be installed first:
+#   https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-deploy-eck.html
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: logging
+spec:
+  version: 7.17.3                  # 7.17 to stay compatible with the fluentd ES7 image in fluentd-ds.yaml
+  nodeSets:
+  - name: default
+    count: 3
+    config:
+      node.store.allow_mmap: false # disable mmap for small/dev clusters (needs vm.max_map_count otherwise)

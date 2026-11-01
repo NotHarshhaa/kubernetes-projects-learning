@@ -1,3 +1,8 @@
+# Fluentd DaemonSet — one log-collector Pod on every node.
+#
+# Note: the plain "fluentd" image has no Kubernetes log-source config; this uses the
+# official Kubernetes image. For a full log-shipping setup see
+# ../Monitoring-and-Logging/fluentd-ds.yaml.
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -8,12 +13,40 @@ metadata:
 spec:
   selector:
     matchLabels:
-      name: fluentd
+      name: fluentd                # must match .spec.template.metadata.labels
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
   template:
     metadata:
       labels:
         name: fluentd
     spec:
+      # Run on control-plane nodes too (they carry both the old "master" and the
+      # current "control-plane" taint keys depending on cluster version).
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
       containers:
       - name: fluentd
-        image: fluentd:latest
+        image: fluent/fluentd:v1.16-debian-1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+          limits:
+            cpu: 500m
+            memory: 500Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log

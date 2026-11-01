@@ -1,0 +1,15 @@
+# RoleBinding — grants the "pod-manager" Role (role.yaml) to the ServiceAccount
+# inside the default namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: manage-pods
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: app-service-account
+  namespace: default
+roleRef:
+  kind: Role
+  name: pod-manager
+  apiGroup: rbac.authorization.k8s.io

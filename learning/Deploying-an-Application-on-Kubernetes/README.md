@@ -34,7 +34,7 @@ Use a specialised CI/CD platform such as Harness to automate the deployment of y
 
 * ### **Expose the application**
 
-Once you deploy your application, you need to expose the application to the outside world by creating a Service with a type of LoadBalancer or ExternalName. This allows users to access the application through a stable IP address or hostname.
+Once you deploy your application, you need to expose the application to the outside world by creating a Service with a type of LoadBalancer (or NodePort/Ingress). This allows users to access the application through a stable IP address or hostname.
 
 * ### **Monitor and manage your application**
 
@@ -86,7 +86,7 @@ node app.js
 
 You can see the Dockerfile in the sample application repository.
 
-```go
+```dockerfile
 FROM node:14-alpine
 
 WORKDIR /app
@@ -102,22 +102,23 @@ EXPOSE 3000
 CMD [ "npm", "start" ]
 ```
 
-Use the following command to build, tag and push the image to any container registry of your choice. We will push it to Docker Hub in this tutorial.
+Use the following command to build, tag and push the image to any container registry of your choice. We will push it to Docker Hub in this tutorial (set the `DOCKERHUB_USERNAME` and `TAG` variables to your own values).
 
-For Mac M1, use the following command
+For Mac M1/Apple Silicon, use the following command to build a multi-arch image
 
 ```bash
-docker buildx build --platform=linux/arm64 --platform=linux/amd64  -t docker.io/$your docker hub user name/$image name:$tag name --push  -f ./Dockerfile .
+docker buildx build --platform=linux/amd64,linux/arm64 \
+  -t ${DOCKERHUB_USERNAME}/notes-app:${TAG} --push -f ./Dockerfile .
 ```
 
-For other than Mac M1, use the below commands to build and push the image,
+For other machines, use the below commands to build and push the image,
 
 ```bash
-docker build -t $your docker hub user name/$image name .
+docker build -t ${DOCKERHUB_USERNAME}/notes-app:${TAG} .
 ```
 
 ```bash
-docker push $your docker hub user name/$image name .
+docker push ${DOCKERHUB_USERNAME}/notes-app:${TAG}
 ```
 
 ### **Step 3: Create or get access to a Kubernetes cluster**
@@ -130,7 +131,7 @@ I already have an account on Google Cloud, so creating a cluster will be easy.
 
 You need deployment yaml and service yaml files to deploy and expose your application. Make sure both files are configured properly.
 
-You can see that we have deployment.yaml and service.yaml file already present in the sample application repository.
+You can see that we have deployment.yaml and service.yaml file already present in the sample application repository — and also in this folder. Note the good practices baked in: resource requests/limits, readiness + liveness probes, and an `imagePullPolicy`.
 
 **Below is our deployment.yaml file.**
 
@@ -243,7 +244,7 @@ Go to the module and start your deployment journey.
 
 The set-up is very straightforward, as shown in the above image; you can deploy your application in just four simple steps.
 
-Select your deployment type i, e Kubernetes and click ‘Connect to Environment’.
+Select your deployment type (i.e., Kubernetes) and click ‘Connect to Environment’.
 
 ![deployment type](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/runmg0ljv7ubca7nl89i.png)
 

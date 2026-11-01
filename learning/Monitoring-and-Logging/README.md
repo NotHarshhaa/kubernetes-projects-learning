@@ -59,6 +59,17 @@ Effective monitoring and logging in Kubernetes involves multiple components work
   - Pattern matching
   - Visual analysis
 
+## Files in this folder
+
+| File | Purpose |
+|------|---------|
+| `prometheus-values.yaml` | Helm values for the kube-prometheus-stack |
+| `elasticsearch.yaml` | Elasticsearch CR (requires the **ECK operator** — see below) |
+| `kibana.yaml` | Kibana CR, pointed at the Elasticsearch CR |
+| `fluentd-ds.yaml` | Fluentd DaemonSet shipping node logs to Elasticsearch |
+
+> ⚠️ The `Elasticsearch` / `Kibana` custom resources require the [ECK operator](https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-deploy-eck.html) installed first (`kubectl apply -f https://download.elastic.co/downloads/eck/2.14.0/crds.yaml`, then the operator manifest). ECK automatically creates the `elastic` user password in a secret named `<name>-es-elastic-user` — `fluentd-ds.yaml` wires that secret in for you.
+
 ## Prerequisites
 - Running Kubernetes cluster
   - Minimum 3 nodes recommended
@@ -129,14 +140,12 @@ helm install monitoring prometheus-community/kube-prometheus-stack -f prometheus
 # Create namespace
 kubectl create namespace logging
 
-# Deploy Elasticsearch
+# Deploy Elasticsearch and Kibana (ECK operator required — see Prerequisites)
 kubectl apply -f elasticsearch.yaml
+kubectl apply -f kibana.yaml
 
 # Deploy Fluentd
 kubectl apply -f fluentd-ds.yaml
-
-# Deploy Kibana
-kubectl apply -f kibana.yaml
 ```
 
 ### 3. Configure Service Monitors
@@ -209,10 +218,11 @@ kubectl describe prometheus -n monitoring
 
 # Verify Fluentd
 kubectl get pods -n logging -l app=fluentd
-kubectl logs -n logging -l app=fluentd
+kubectl logs -n logging -l app=fluentd --tail=50
 
-# Elasticsearch health
-kubectl exec -it elasticsearch-0 -n logging -- curl localhost:9200/_cluster/health
+# Elasticsearch health (ECK pod naming: <name>-es-default-<n>)
+kubectl get pods -n logging
+kubectl exec -it logging-es-default-0 -n logging -- curl -s localhost:9200/_cluster/health?pretty
 ```
 
 ## Advanced Configuration
@@ -258,11 +268,26 @@ spec:
 ```
 
 ## Accessing Dashboards
+
+The stack is cluster-internal by default — use `port-forward` to reach it locally:
+
+```bash
+# Prometheus
+kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090
+
+# Grafana (default user: admin — get the password from the release secret)
+kubectl port-forward -n monitoring svc/monitoring-grafana 3000:80
+kubectl get secret monitoring-grafana -o jsonpath='{.data.admin-password}' | base64 -d
+
+# Kibana (ECK creates a <name>-kb-http service + superuser password secret)
+kubectl port-forward -n logging svc/logging-kb-http 5601:5601
+kubectl get secret logging-es-elastic-user -o jsonpath='{.data.elastic}' | base64 -d
+```
+
+Then open:
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000
 - Kibana: http://localhost:5601
-
-Default credentials and access methods are documented in each component's deployment guide.
 
 ## Additional Resources
 
@@ -270,5 +295,5 @@ Default credentials and access methods are documented in each component's deploy
 - [Grafana Documentation](https://grafana.com/docs/)
 - [Elasticsearch Documentation](https://www.elastic.co/guide/index.html)
 - [Fluentd Documentation](https://docs.fluentd.org/)
-- [Kubernetes Monitoring Guide](https://kubernetes.io/docs/tasks/debug-application-cluster/resource-usage-monitoring/)
+- [Kubernetes Monitoring Guide](https://kubernetes.io/docs/concepts/cluster-administration/monitoring/)
 - [EFK Stack Tutorial](https://www.digitalocean.com/community/tutorials/how-to-set-up-an-elasticsearch-fluentd-and-kibana-efk-logging-stack-on-kubernetes) 

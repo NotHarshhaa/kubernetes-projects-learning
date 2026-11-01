@@ -27,17 +27,28 @@ Secrets are similar to ConfigMaps but are specifically designed to hold sensitiv
   - From configuration files
   - From directories
 - Injecting configuration data into Pods
-  - As environment variables
-  - As configuration files
+  - As environment variables (`valueFrom` and `envFrom`)
+  - As configuration files (volume mounts)
   - As command-line arguments
 - Working with Secrets
-  - Creating encrypted secrets
+  - Creating secrets (`stringData` vs base64 `data`)
   - Mounting secrets in pods
-  - Automatic secret rotation
+  - Understanding how secret updates propagate
 - Best practices for configuration management
   - Versioning configurations
   - Namespace isolation
   - Access control
+
+> ⚠️ **Important:** Secrets are *base64-encoded, not encrypted*. Anyone with read access can decode them. Real protection = RBAC + encryption-at-rest + tools like [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) or [External Secrets Operator](https://external-secrets.io/).
+
+## Files in this folder
+
+| File | Purpose |
+|------|---------|
+| `configmap-literal.yaml` | ConfigMap with individual key-value pairs |
+| `configmap-file.yaml` | ConfigMap holding a whole properties file as one key |
+| `secret.yaml` | Opaque Secret with database credentials |
+| `pod-with-config.yaml` | Pod consuming config as env vars, `envFrom`, and mounted files |
 
 ## Prerequisites
 - A running Kubernetes cluster (minikube, kind, or cloud provider)
@@ -71,7 +82,19 @@ kubectl create secret generic db-secret \
 ```
 
 ### 4. Environment variables injection
-The `pod-with-config.yaml` demonstrates how to inject ConfigMap values as environment variables.
+The `pod-with-config.yaml` demonstrates **three** ways to consume configuration:
+```yaml
+env:                    # selected keys as env vars
+- name: APP_COLOR
+  valueFrom:
+    configMapKeyRef:
+      name: app-config
+      key: APP_COLOR
+
+envFrom:                # ALL keys of a ConfigMap as env vars
+- configMapRef:
+    name: app-config-file
+```
 
 ### 5. Volume mounts for configuration
 ```yaml
@@ -80,6 +103,7 @@ volumes:
     configMap:
       name: app-config
 ```
+Each ConfigMap key becomes a file under the mount path. Unlike env vars, volume-mounted ConfigMaps/Secrets are **updated in place** by the kubelet (eventually — usually within a minute), so apps watching their config files can reload without a restart.
 
 ## Best Practices
 
@@ -122,14 +146,15 @@ kubectl apply -f pod-with-config.yaml
 
 2. Verify the configuration:
 ```bash
-# Check ConfigMap creation
-kubectl get configmaps
+# Check ConfigMap and Secret creation
+kubectl get configmaps,secrets
 
 # Verify Pod environment variables
-kubectl exec pod-name -- env
+kubectl exec app-pod -- env | grep -E "APP_|LOG_LEVEL"
 
 # View mounted configurations
-kubectl exec pod-name -- ls /etc/config
+kubectl exec app-pod -- ls /etc/app-config
+kubectl exec app-pod -- cat /etc/app-config/APP_COLOR
 ```
 
 ## Troubleshooting
@@ -142,9 +167,9 @@ Common issues and solutions:
    - Validate RBAC permissions
 
 2. **Configuration Not Updated**
-   - Remember ConfigMap updates aren't automatically reflected
-   - Restart Pod to pick up new configurations
-   - Consider using a configuration reloader
+   - **Env vars are injected at Pod creation only** — editing a ConfigMap never updates them; restart the Pod (`kubectl rollout restart deployment <name>`)
+   - Volume-mounted configs are refreshed automatically (eventually), but apps must reload the files themselves
+   - Remember the 1 MiB size limit for ConfigMaps/Secrets
 
 3. **Volume Mount Issues**
    - Check volume mount paths

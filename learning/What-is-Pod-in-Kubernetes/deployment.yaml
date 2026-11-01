@@ -1,23 +1,42 @@
-apiVersion: v1
+# MySQL Deployment + Service used by the initContainer demo in pod.yaml.
+#
+# Fixes from the previous version:
+#   * apiVersion is apps/v1 for a Deployment (v1 was invalid)
+#   * a Deployment MUST have spec.selector + spec.template (it was missing entirely)
+#   * emptyDir (camelCase), not "emptydir"
+#   * MYSQL_USER=root is rejected by the mysql image — use MYSQL_ROOT_PASSWORD instead
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hello-mysql
+  labels:
+    app: hello-mysql
 spec:
-  volumes:
-    - name: data
-      emptydir: {}
-  containers:
-  - name: mysql
-    image: mysql
-    env:
-    - name: MYSQL_USER
-      value: root
-    - name: MYSQL_ALLOW_EMPTY_PASSWORD
-      value: 'yes'
-    - name: MYSQL_DATABASE
-      value: 'some-app'
-  ports:
-  - containerPort: 3306
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-mysql          # must match .spec.template.metadata.labels
+  template:
+    metadata:
+      labels:
+        app: hello-mysql        # must match .spec.selector.matchLabels AND the Service selector
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "changeme"     # never do this in production — use a Secret (see ../Managing-ConfigMaps-and-Secrets)
+        - name: MYSQL_DATABASE
+          value: "some-app"
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: data
+        emptyDir: {}            # data is lost when the Pod is deleted — for real persistence see ../Storage-PersistentVolumes
 ---
 apiVersion: v1
 kind: Service
@@ -25,6 +44,7 @@ metadata:
   name: hello-mysql
 spec:
   selector:
-    app: hello-mysql
+    app: hello-mysql            # routes traffic to the Pod created by the Deployment above
   ports:
-  - port: 3306
+  - port: 3306                  # port the Service exposes inside the cluster
+    targetPort: 3306            # port the container listens on

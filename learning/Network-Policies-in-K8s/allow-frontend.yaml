@@ -1,3 +1,9 @@
+# Allows ONLY pods labelled app: frontend to reach pods labelled app: backend on port 80.
+# Every other source is blocked once a NetworkPolicy selects a Pod.
+#
+# Fixes from the previous version: the podSelector targeted app: frontend while
+# allowing ingress "from role: frontend" — i.e. the policy did not match its own
+# documentation. It now targets the backend pods and allows the frontend pods in.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -5,14 +11,14 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: frontend
+      app: backend                 # policy applies to the BACKEND pods
   policyTypes:
   - Ingress
   ingress:
   - from:
     - podSelector:
         matchLabels:
-          role: frontend
+          app: frontend            # only FRONTEND pods may connect
     ports:
     - protocol: TCP
-      port: 80 
+      port: 80

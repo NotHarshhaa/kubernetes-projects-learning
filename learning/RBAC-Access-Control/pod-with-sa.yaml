@@ -1,0 +1,15 @@
+# A Pod running with the custom ServiceAccount.
+#
+# With role.yaml + role-binding.yaml applied, this Pod can get/list/watch/create/
+# update/patch/delete Pods in the default namespace, and read pod logs — nothing else.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-with-sa
+spec:
+  serviceAccountName: app-service-account      # defaults to "default" when omitted
+  automountServiceAccountToken: true           # default is true; set false if the app never calls the API
+  containers:
+  - name: app
+    image: busybox:1.36
+    command: ['sh', '-c', 'echo Hello from a pod with a custom ServiceAccount! && sleep 3600']

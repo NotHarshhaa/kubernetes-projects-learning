@@ -1,3 +1,8 @@
+# A Pod with an initContainer that waits for the MySQL Pod (deployment.yaml) to accept
+# connections before the main application container starts.
+#
+# The app container only runs after "DB is UP" is printed — initContainers must all
+# succeed before spec.containers are started.
 apiVersion: v1
 kind: Pod
 metadata:
@@ -5,24 +10,20 @@ metadata:
   labels:
     app: hello
 spec:
+  restartPolicy: Always          # Always (default) | OnFailure | Never
   containers:
   - name: hello-world-container
-    image: busybox
+    image: busybox:1.36
     command: ['sh', '-c', 'echo Hello World! && sleep 3600']
   initContainers:
   - name: mysql-container
-    image: busybox
+    image: busybox:1.36
     command:
-      - '/bin/sh'
-      - '-c'
-      - |
-          while true
-          do
-            rt=$(nc -z -w 1 hello-mysql 3306)          
-            if [ $? -eq 0 ]; then
-              echo "DB is UP"
-              break
-            fi
-            echo "DB is not yet reachable;sleep for 10s before retry"
-            sleep 10
-          done
+    - /bin/sh
+    - -c
+    - |
+      until nc -z -w 1 hello-mysql 3306; do
+        echo "DB is not yet reachable; sleeping 10s before retry"
+        sleep 10
+      done
+      echo "DB is UP"

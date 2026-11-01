@@ -1,3 +1,7 @@
+# Pod consuming configuration three ways:
+#   1. individual env vars from a ConfigMap (valueFrom.configMapKeyRef)
+#   2. ALL keys of a ConfigMap as env vars (envFrom)
+#   3. a ConfigMap mounted as files on a volume
 apiVersion: v1
 kind: Pod
 metadata:
@@ -5,8 +9,8 @@ metadata:
 spec:
   containers:
   - name: app-container
-    image: nginx:1.21
-    env:
+    image: nginx:1.25-alpine
+    env:                                        # 1. selected keys as env vars
     - name: APP_COLOR
       valueFrom:
         configMapKeyRef:
@@ -16,4 +20,15 @@ spec:
       valueFrom:
         configMapKeyRef:
           name: app-config
-          key: APP_MODE 
+          key: APP_MODE
+    envFrom:                                    # 2. every key of the ConfigMap becomes an env var
+    - configMapRef:
+        name: app-config-file
+    volumeMounts:                               # 3. mounted as files under /etc/app-config
+    - name: config-volume
+      mountPath: /etc/app-config
+      readOnly: true
+  volumes:
+  - name: config-volume
+    configMap:
+      name: app-config

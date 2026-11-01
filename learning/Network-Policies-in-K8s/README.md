@@ -53,6 +53,16 @@ Network Policies are application-centric constructs that specify how groups of p
   - Service networking
   - CNI concepts
 
+> ⚠️ **Common trap:** the default CNI of Minikube/kind **does not enforce** NetworkPolicies — pods apply them but traffic is not blocked. For Minikube start the cluster with `minikube start --cni=calico`; for kind install a CNI like Calico or Cilium afterwards. Verify with the test in the Implementation Guide below.
+
+## Files in this folder
+
+| File | Purpose |
+|------|---------|
+| `default-deny.yaml` | Baseline: deny all ingress + egress in the namespace |
+| `allow-frontend.yaml` | Only `app: frontend` pods may reach `app: backend` pods on port 80 |
+| `allow-database.yaml` | Only `app: backend` pods may reach `app: database` pods on port 5432 |
+
 ## Examples included
 
 ### 1. Default Deny All Traffic
@@ -128,8 +138,13 @@ spec:
 
 1. **Prepare Your Environment**
 ```bash
-# Verify NetworkPolicy support
-kubectl get pods -n kube-system | grep network
+# Deploy test pods (frontend, backend, database) with the labels used by the policies
+kubectl run frontend --image=nginx:1.25-alpine -l app=frontend
+kubectl run backend  --image=nginx:1.25-alpine -l app=backend
+kubectl run database --image=nginx:1.25-alpine -l app=database
+
+# Verify a CNI that enforces policies is installed
+kubectl get pods -n kube-system | grep -Ei "calico|cilium|antrea|weave"
 ```
 
 2. **Apply Base Policies**
@@ -146,12 +161,18 @@ kubectl apply -f allow-database.yaml
 
 3. **Verify Policy Enforcement**
 ```bash
-# Test pod connectivity
-kubectl exec -it frontend-pod -- curl backend-service
+# frontend -> backend on port 80: should SUCCEED (allowed by allow-frontend.yaml)
+kubectl exec frontend -- wget -qO- --timeout=5 http://backend:80
 
-# Check policy status
-kubectl describe networkpolicy
+# frontend -> database on port 5432: should FAIL (no policy allows it)
+kubectl exec frontend -- wget -qO- --timeout=5 http://database:5432
+
+# Inspect the policies
+kubectl describe networkpolicy allow-frontend
+kubectl get networkpolicies -A
 ```
+
+> 💡 Use `wget`/`curl` (TCP) rather than `ping` (ICMP) to test — ICMP traffic doesn't match the port-based rules used in these examples, so a successful ping proves nothing about HTTP access.
 
 ## Troubleshooting
 
@@ -188,8 +209,30 @@ kubectl exec -it debugger -- ping target-pod
 
 1. **Egress Control**
    - External service access
-   - DNS policy configuration
    - CIDR-based rules
+   - **DNS gotcha:** once you add a default-deny **egress** policy, pods can no longer resolve names! Always pair it with a DNS-allow policy:
+```yaml
+# allow-dns.yaml — required whenever default-deny egress is in place
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector: {}          # kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+```
 
 2. **Multi-cluster Policies**
    - Cross-cluster communication
@@ -204,6 +247,6 @@ kubectl exec -it debugger -- ping target-pod
 ## Additional Resources
 
 - [Official Kubernetes NetworkPolicy Documentation](https://kubernetes.io/docs/concepts/services-networking/network-policies/)
-- [Calico Network Policy Guide](https://docs.projectcalico.org/security/network-policy)
+- [Calico Network Policy Guide](https://docs.tigera.io/calico/latest/security/kubernetes-network-policy)
 - [Network Policy Recipes](https://github.com/ahmetb/kubernetes-network-policy-recipes)
-- [Kubernetes Network Policy Editor](https://editor.cilium.io/) 
+- [Cilium Network Policy Editor](https://editor.cilium.io/) 

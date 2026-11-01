@@ -1,0 +1,33 @@
+# Deployment for HPA testing.
+#
+# IMPORTANT: resource requests are MANDATORY for HPA — without spec.resources.requests
+# the HPA cannot compute CPU utilization percentages and will report
+# "failed to get cpu utilization: missing request for cpu".
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app
+  labels:
+    app: web-app
+spec:
+  replicas: 2                        # HPA min is 2 — start there, not at 1
+  selector:
+    matchLabels:
+      app: web-app
+  template:
+    metadata:
+      labels:
+        app: web-app
+    spec:
+      containers:
+      - name: web
+        image: nginx:1.25-alpine
+        ports:
+        - containerPort: 80
+        resources:
+          requests:                  # the numbers HPA measures against
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi

@@ -1,5 +1,7 @@
 # Kubernetes – Architecture and main components overview
 
+> ℹ️ Terminology note: what used to be called "master nodes" is now officially the **control plane**. Both names appear in older docs and articles.
+
 ### Architecture – an overview
 
 In general, Kubernetes cluster components looks like next:
@@ -10,96 +12,96 @@ Or a bit more simple one:
 
 ![](https://rtfm.co.ua/wp-content/uploads/2019/07/API-server-overview.png)
 
-The cluster itself consists of one or more *Master Nodes* and one or more *Worker Nodes*.
+The cluster itself consists of one or more *Control Plane (Master) Nodes* and one or more *Worker Nodes*.
 
-#### **Master Node**
+#### **Control Plane (Master Node)**
 
-Services running on a Master Node are called “[*Kubernetes Control Plane*](https://kubernetes.io/docs/concepts/#kubernetes-control-plane)” (excluding `etcd`), and the Master Node is used for administrative tasks only, while containers with your services will be created on a Worker Node(s).
+Services running on a Control Plane node are called the “[*Kubernetes Control Plane*](https://kubernetes.io/docs/concepts/overview/components/)”, and the Control Plane is used for administrative tasks only, while containers with your services will be created on a Worker Node(s).
 
 ##### Kubernetes core services aka Kubernetes Control Plane
 
 * [Kubernetes Master Components: Etcd, API Server, Controller Manager, and Scheduler](https://medium.com/jorgeacetozi/kubernetes-master-components-etcd-api-server-controller-manager-and-scheduler-3a0179fc8186)
-    
 
-On the Master Node, there are three main Kubernetes components which make the whole cluster working:
+
+On a Control Plane node, there are three main Kubernetes components which make the whole cluster working:
 
 * [`kube-apiserver`](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/)
-    
-    * the main entrypoint for all requests to the cluster, for example `kubectl` commands will be sent as an API-requests into the [`kube-apiserver`](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/) on the Master Node
-        
-    * the API server serves all REST-requests, validates them and sends them to the `etcd` (API server is the only one service which talks to the `etcd` – all other components will speak to the API itself, and API serer in its turn will update data in the `etcd`, see the [*Components interaction*](https://rtfm.co.ua/en/?p=21104#Components_interaction))
-        
-    * the API server is also responsible for authentification and authorization
-        
+
+    * the main entrypoint for all requests to the cluster, for example `kubectl` commands will be sent as API requests to the [`kube-apiserver`](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/)
+
+    * the API server serves all REST requests, validates them, authenticates and authorizes them, and persists the objects into `etcd` (the API server is the **only** component which talks to `etcd` – all other components speak to the API server itself, see [*Components interaction*](#components-interaction))
+
 * [`kube-scheduler`](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-scheduler/)
-    
-    * makes a decision about which worker node w will be used for a new Pod creation (see. [*Pod*](https://rtfm.co.ua/en/?p=21104#Pod)) depending on resources requested and nodes usage
-        
+
+    * makes a decision about which worker node will be used for a new Pod creation (see [*Pod*](#pod)) depending on resources requested, taints/tolerations, affinity rules and node usage
+
 * [`kube-controller-manager`](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/)
-    
-    * a daemon for [Controllers](https://kubernetes.io/docs/concepts/overview/components/#kube-controller-manager) such as *Replication Controller*, *Endpoints Controller,* and *Namespace Controller*
-        
-    * periodically compares a cluster state via API server and applies necessary changes
-        
-    * also used for the Linux Namespaces (see the [What is: Linux namespaces, примеры PID и Network namespaces](https://rtfm.co.ua/what-is-linux-namespaces-primery-na-c-clone-pid-i-net-namespaces/), *Rus*) creation and management and garbage collection
-        
+
+    * a daemon for [Controllers](https://kubernetes.io/docs/concepts/overview/components/#kube-controller-manager) such as the *Node Controller*, *Job Controller*, *Endpoints Controller*, etc.
+
+    * periodically compares the cluster state via the API server and applies necessary changes — this is the **reconciliation loop**
+
+    * also runs node-lifecycle management and garbage collection
+
 
 ##### `etcd`
 
 * [etcd.io](https://etcd.io/)
-    
 
-Is a *key:value* storage used by Kubernetes for [service discovery](https://en.wikipedia.org/wiki/Service_discovery) and configuration management.
 
-Also, it keeps a cluster’s *current* and *desired* states: if K8s will find distinguishes between those states – it will apply the *desired* state to make it the *current* state.
+Is a *key:value* storage used by Kubernetes as the single source of truth for all cluster data.
+
+Also, it keeps the cluster’s *current* and *desired* states: if K8s finds discrepancies between those states – it will apply changes to make the *current* state match the *desired* state.
+
+> 💡 `etcd` data is the cluster — back it up. `etcdctl snapshot save` is a classic CKA exam task for a reason.
 
 #### **Worker Node**
 
-Worker Node (previously known as a *minion*) – a virtual or bare-metal server with Kuberners components to create and manage Pods (see [*Pod*](https://rtfm.co.ua/en/?p=21104#Pod)).
+Worker Node (previously known as a *minion*) – a virtual or bare-metal server with Kubernetes components to create and manage Pods (see [*Pod*](#pod)).
 
 Those components are:
 
-* [`kubelet`](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/): the main Kubernetes component on each cluster’s node which speaks to the API server, to check if there are new Pods to be created on the current Worker Node
-    
-    * it communicates to a Docker daemon (or other containers system like [`rkt`](https://coreos.com/rkt/) or [`containerd`](https://containerd.io/)) via its API to create and manage containers
-        
-    * after any changes in a Pod on a Node – will send them to the API server, which in its turn will save them to the `etcd` database
-        
-    * performs containers monitoring
-        
-* [`kube-proxy`](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/): like a reverse-proxy service to forwarding requests to an appropriate service or applications inside a Kubernetes private network
-    
-    * uses [IPTABLES](https://rtfm.co.ua/linux-iptables-rukovodstvo-chast-1-osnovy-iptables/) by default (you can check existing rules by the `kubectl -n kube-system exec -ti kube-proxy-5ctt2 -- iptables --table nat --list` command)
-        
-    * see. [Understanding Kubernetes Kube-Proxy](https://supergiant.io/blog/understanding-kubernetes-kube-proxy/)
-        
+* [`kubelet`](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/): the main Kubernetes component on each cluster node which watches the API server for Pods assigned to its node
+
+    * it communicates with the container runtime ([`containerd`](https://containerd.io/) or [`CRI-O`](https://cri-o.io/)) via the [CRI](https://kubernetes.io/docs/concepts/architecture/cri/) to create and manage containers — the once-popular `rkt` is long dead and Docker as a direct runtime (`dockershim`) was removed in 1.24
+
+    * after any changes in a Pod on a Node – will report them to the API server, which in its turn will save them to the `etcd` database
+
+    * performs container and node health monitoring (and reports `NodeNotReady` conditions)
+
+* [`kube-proxy`](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/): a network proxy running on every node that forwards requests to the appropriate Service or applications inside the Kubernetes private network
+
+    * uses [iptables](https://kubernetes.io/docs/concepts/services-networking/service/#proxy-modes) or IPVS to implement the Service routing rules (you can check existing rules with `kubectl -n kube-system exec -ti <kube-proxy-pod> -- iptables-save -t nat`)
+
+    * see [Understanding Kubernetes Kube-Proxy](https://supergiant.io/blog/understanding-kubernetes-kube-proxy/)
+
 
 #### **Components interaction**
 
-Example when a new Pod created:
+Example when a new Pod is created:
 
 1. `kubectl` will send a request to the API server
-    
-2. the API server will validate it and send to the `etcd`
-    
-3. `etcd` will reply to the API that requests accepted and saved in a database
-    
-4. the API server will talk to the `kube-scheduler`
-    
-5. `kube-scheduler` will choose a Worker Node to create a new Pod and sends this information back to the API server
-    
-6. the API server will send this information to the `etcd`
-    
-7. `etcd` will reply it accepted and saved data
-    
-8. the API server talks to the `kubelet` on a chosen Worker Node
-    
-9. `kubelet` will talk to the Docker daemon (or another [container runtime](https://kubernetes.io/docs/setup/production-environment/container-runtimes/) used) via its API to create a new container
-    
-10. `kubelet` will send information about new Pod back to the API server
-    
-11. the API server will update information in the `etcd`
-    
+
+2. the API server will validate it, authenticate/authorize it, and write it to `etcd`
+
+3. `etcd` will reply to the API server that the request was accepted and saved
+
+4. the API server (via the watch mechanism) notifies the `kube-scheduler`
+
+5. `kube-scheduler` will choose a Worker Node for the new Pod and sends this binding back to the API server
+
+6. the API server will send this information to `etcd`
+
+7. `etcd` will reply it accepted and saved the data
+
+8. the `kubelet` on the chosen Worker Node — which watches the API server — sees the Pod assigned to its node
+
+9. `kubelet` will talk to the container runtime ([containerd](https://containerd.io/), [CRI-O](https://cri-o.io/), ...) via the CRI to create a new container
+
+10. `kubelet` will send information about the new Pod's status back to the API server
+
+11. the API server will update the information in `etcd`
+
 
 ### **Kubernetes abstractions**
 
@@ -107,25 +109,25 @@ Above we spoke about more or less “touchable” things such as virtual machine
 
 But the Kubernetes itself is just a big piece of an… abstraction, placed upon a physical or virtual infrastructure.
 
-Thus, Kubernetes has a lot of own objects which are abstract or logical Kubernete’s components.
+Thus, Kubernetes has a lot of own objects which are abstract or logical Kubernetes components.
 
 #### **Pod**
 
 The Pod – main logical unit in a Kubernetes cluster.
 
-Inherently, Pod is kind of a virtual machine inside the Kubernetes cluster: it has own private IP, hostname, shared volumes etc (see. [*Volumes*](https://rtfm.co.ua/en/?p=21104#Volumes)).
+Inherently, a Pod is kind of a virtual machine inside the Kubernetes cluster: it has its own private IP, hostname, shared volumes etc (see [*Volumes*](#volumes)).
 
-A Pod is a deployment unit (see [*Deployment*](https://rtfm.co.ua/en/?p=21104#Deployment)) and inside of this “virtual machine” one or more containers will be created, which are tied by a common goal and which are a logical application with one or more processes running.
+A Pod is a deployment unit and inside of this “virtual machine” one or more containers will be created, which are tied by a common goal and which are a logical application with one or more processes running.
 
-Each such a Pod is designated to run and serve an only one copy of an application: if you’ll want to make a horizontal scaling – you need to use a dedicated pod per each Worker Node.
+Each such Pod is designated to run and serve only one copy of an application: if you want horizontal scaling – you need multiple Pods, managed by a controller like a `Deployment` or `ReplicaSet`.
 
 ![](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190719_141733.png)
 
-Such a nodes group called *Replicated Pods* and are managed by a dedicated controller (see [*Controllers*](https://rtfm.co.ua/?p=21053#Conrtollers)).
+Such a group of Pods is called *Replicated Pods* and is managed by a dedicated controller (see [*Controllers*](#controllers)).
 
-In doing so containers itself are not the Kubernetes cluster objects and they are not managed by the Kubernetes directly, instead – Kubernetes manages Pods, while containers inside of this Pod shares its namespaces including IP addresses and ports and can communicate to each other via *localhost* (because of Pod is like a VM).
+Containers themselves are **not** Kubernetes cluster objects and they are not managed by Kubernetes directly — instead, Kubernetes manages Pods, while containers inside of a Pod share its namespaces including IP address and ports and can communicate with each other via *localhost*.
 
-A Pod’s template example:
+A Pod’s template example (this file exists in this folder as `my-pod.yaml`):
 
 ```yaml
 apiVersion: v1
@@ -146,77 +148,56 @@ spec:
 **Links**:
 
 * [Service](https://kubernetes.io/docs/concepts/services-networking/service/)
-    
+
 * [Kubernetes Services: A Beginner’s Guide](https://www.bmc.com/blogs/kubernetes-services/)
-    
+
 * [Kubernetes – Services Explained](https://www.youtube.com/watch?v=5lzUpDtmWgM)
-    
+
 
 Services in the first turn are everything about networking in a Kubernetes cluster.
 
 They are used for communications between an application’s components inside and outside of it.
 
-Basically, services are the same Kubernetes objects as [*Pod*](https://rtfm.co.ua/?p=21053#Pod), [*ReplicaSets*](https://rtfm.co.ua/?p=21053#ReplicaSet), [*DaemonSet*](https://rtfm.co.ua/?p=21053#DaemonSet) are, and you can imagine a Service like a dedicated virtual machine inside of a cluster’s Node.
+Basically, services are the same Kubernetes objects as [*Pod*](#pod), [*ReplicaSet*](#replicaset), [*DaemonSet*](#daemonset) are, and you can imagine a Service like a dedicated virtual load-balancer inside of the cluster.
 
 They can be displayed as the next:
 
 ![](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190719_161337.png)
 
-Here is a user who connects to a frontend application via one Service, then this frontend talks to two backend applications using two additional Services, and backends communicates to a database service via other one Service.
+Here is a user who connects to a frontend application via one Service, then this frontend talks to two backend applications using two additional Services, and backends communicate to a database service via another one Service.
 
 ##### `ClusterIP`
 
-Will open access to an application via a cluster’s internal IP, thus will be accessible from within the cluster itself.
+Will open access to an application via a cluster’s internal IP, thus it will be accessible only from within the cluster itself.
 
 Is the default Service type.
 
 ##### `NodePort`
 
-This Service type will open access to an application using a Worker Node’s static IP.
+This Service type will open access to an application using a static port (in the **30000–32767** range) on every node’s IP.
 
-Also, automatically will create a `ClusterIP` service for the application to route traffic from the `NodePort`.
+Also, it will automatically create a `ClusterIP` service for the application to route traffic from the `NodePort`.
 
 ![](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190722_110641.png)
 
 Here:
 
-* *30008* – an external port on a Worker Node which can be used to connect to the `NodePort` service, must be in the 30000 – 32767 ports range
-    
+* *30008* – an external port on a Worker Node which can be used to connect to the `NodePort` service, must be in the 30000–32767 range
+
 * `NodePort` service with the `ClusterIP`, own port (*Port*) and IP from the `serviceSubnet` block
-    
+
 * Pod with an application inside – Pod will accept new connections to its port 80 (*TargetPort*) and has an IP from the `podSubnet` block
-    
 
-Those networks can be found using the `kubeadm config view` command:
 
-```yaml
-root@k8s-master:~# kubeadm config view
-apiServer:
-extraArgs:
-authorization-mode: Node,RBAC
-timeoutForControlPlane: 4m0s
-apiVersion: kubeadm.k8s.io/v1beta2
-certificatesDir: /etc/kubernetes/pki
-clusterName: kubernetes
-controllerManager: {}
-dns:
-type: CoreDNS
-etcd:
-local:
-dataDir: /var/lib/etcd
-imageRepository: k8s.gcr.io
-kind: ClusterConfiguration
-kubernetesVersion: v1.15.0
-networking:
-dnsDomain: cluster.local
-podSubnet: 10.244.0.0/16
-serviceSubnet: 10.96.0.0/12
-scheduler: {}
+Those networks can be checked with `kubectl cluster-info dump | grep -m1 cluster-cidr`, or on a kubeadm cluster (modern kubeadm removed `kubeadm config view`; use):
+
+```bash
+kubeadm config print init-defaults | grep -A3 networking
 ```
 
 And again – you can imagine a Service like another one VM inside of your Worker Node, in the same way as about Pods.
 
-A `NodePort` service’s template example:
+A `NodePort` service’s template example (this file exists in this folder as `my-svc.yaml`):
 
 ```yaml
 apiVersion: v1
@@ -237,32 +218,17 @@ spec:
 ##### Service, Pod, labels, selectors
 
 * [Labels and Selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
-    
 
-To make a Service distinguish which Pod has to be used to route traffic to – the `Labels` и `Selectors` are used.
+
+To make a Service distinguish which Pods have to be used to route traffic to – the `Labels` and `Selectors` are used.
 
 In the pod’s template example above we added labels for our application:
 
 ```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: my-pod
+...
   labels:
     app: my-app
     type: front-app
-spec:
-  containers:
-  - name: nginx-container
-    image: nginx
-```
-
-Here it is – the *labels*:
-
-```yaml
-...
-  labels: 
-    app: my-app
 ```
 
 Then in a Service’s description – we are using *selectors*:
@@ -277,32 +243,34 @@ Thus if a cluster has multiple Pods with such a label – then a Service will tr
 
 ![](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190722_113024.png)
 
-In case if an application placed on multiple Worker Nodes – then a `NodePort` service will be spread between all those nodes and *30008* port will be opened on every such a node.
+In case if an application is placed on multiple Worker Nodes – then a `NodePort` service will be spread between all those nodes and the *30008* port will be opened on every such a node.
 
-Thus, you can access an application via a `NodePort` service using a Public IP of any Worker Node used:
+Thus, you can access an application via a `NodePort` service using the IP of **any** Worker Node:
 
 ![](https://rtfm.co.ua/wp-content/uploads/2019/07/Screenshot_20190722_113433.png)
 
 ##### `LoadBalancer`
 
-* [Type LoadBalancer](https://kubernetes.io/docs/concepts/services-networking/#loadbalancer)
-    
+* [Type LoadBalancer](https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer)
+
 * [Cloud Providers](https://kubernetes.io/docs/concepts/cluster-administration/cloud-providers/)
-    
+
 * [Using Kubernetes LoadBalancer Services on AWS](https://blog.giantswarm.io/load-balancer-service-use-cases-on-aws/)
-    
 
-Will create a cloud provider’s Load Balancer, for example – [AWS ALB](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html).
 
-Worker Nodes will be attached to this Load Balancer, and traffic will be routed via internal `LoadBalancer` service to a node’s `NodePort` service.
+Will create a cloud provider’s Load Balancer, for example – [AWS NLB/ALB](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html).
+
+Worker Nodes will be attached to this Load Balancer, and traffic will be routed via the internal `LoadBalancer` service to a node’s `NodePort` service.
 
 `NodePort` and `ClusterIP` will be created automatically.
 
+On bare metal (no cloud LB) consider [MetalLB](https://metallb.universe.tf/).
+
 ##### `ExternalName`
 
-Will tie the Service to its `externalName` field value to return its CNAME value.
+Will map the Service to the contents of its `externalName` field by returning a CNAME DNS record — it does **not** proxy traffic and has no selectors.
 
-An `ExternalName` service template example:
+An `ExternalName` service template example (this file exists in this folder as `service.yaml`):
 
 ```yaml
 apiVersion: v1
@@ -317,80 +285,75 @@ spec:
 After it will be created – you can reach it from any Pod via this Service name, for example, *my-google-svc* as per the template example above:
 
 ```bash
-root@k8s-master:~# kubectl exec -it my-pod -- dig my-google-svc.default.svc.cluster.local +short
-google.com.
-74.125.193.101
-...
+kubectl exec -it my-pod -- nslookup my-google-svc.default.svc.cluster.local
 ```
 
 #### Volumes
 
 * [Volumes](https://kubernetes.io/docs/concepts/storage/volumes)
-    
-* [Persistent Volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/)
-    
-* [Kubernetes Volumes Guide](https://matthewpalmer.net/kubernetes-app-developer/articles/kubernetes-volumes-example-nfs-persistent-volume.html)
-    
 
-Data in containers is an ephemeral, i.e. if a container will be recreated by the `kubelet` – then all data from the old container will be lost.
+* [Persistent Volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/)
+
+* [Kubernetes Volumes Guide](https://matthewpalmer.net/kubernetes-app-developer/articles/kubernetes-volumes-example-nfs-persistent-volume.html)
+
+
+Data in containers is ephemeral, i.e. if a container will be recreated by the `kubelet` – then all data from the old container will be lost.
 
 Also, multiple containers inside of the same Pod can use shared data.
 
-The `Volumes` concept in the Kubernetes is similar to the Docker’s solution just with much more features.
+The `Volumes` concept in Kubernetes is similar to the Docker’s solution but with much more features.
 
-For example, Kubernete’s Volumes supports various drivers to mount volumes to Pods, like [awsElasticBlockStore](https://kubernetes.io/docs/concepts/storage/volumes/#awselasticblockstore), [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath), [nfs](https://kubernetes.io/docs/concepts/storage/volumes/#nfs), etc.
+For example, Kubernetes Volumes support various drivers to mount volumes to Pods, like [`hostPath`](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath), [`nfs`](https://kubernetes.io/docs/concepts/storage/volumes/#nfs), [`emptyDir`](https://kubernetes.io/docs/concepts/storage/volumes/#emptydir), etc. (the old in-tree cloud driver types like `awsElasticBlockStore` are deprecated — on cloud clusters use the [CSI](https://kubernetes.io/docs/concepts/storage/volumes/#csi) volumes / StorageClasses instead).
+
+See [Storage & Persistent Volumes](../Storage-PersistentVolumes/README.md) for a hands-on guide.
 
 #### Namespaces
 
 * [Namespaces](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/)
-    
+
 * [Share a Cluster with Namespaces](https://kubernetes.io/docs/tasks/administer-cluster/namespaces/)
-    
-* [What is: Linux namespaces, примеры PID и Network namespaces](https://rtfm.co.ua/what-is-linux-namespaces-primery-na-c-clone-pid-i-net-namespaces/)
-    
 
-*Namespace* in the Kubernetes is kind of a dedicated cluster inside of your existing cluster with its own set of namespaces for networking, disks/volumes, processes and so on.
 
-The main idea behind the Namespaces is to dedicate working environments, users and can be used to set resources usage limits – CPU, memory, etc. See [*Resource Quotas*](https://kubernetes.io/docs/concepts/policy/resource-quotas/).
+*Namespace* in Kubernetes is kind of a dedicated cluster inside of your existing cluster with its own set of scopes for networking, disks/volumes, processes and so on.
 
-The Namespaces also used in the Kubernetes DNS service to create an URL in a *..svc.cluster.local* view.
+The main idea behind Namespaces is to dedicate working environments for teams and workloads, and they can be used to set resource usage limits – CPU, memory, etc. See [*Resource Quotas*](https://kubernetes.io/docs/concepts/policy/resource-quotas/).
 
-Most of the Kubernetes resources live in such a Namespaces, you can list them by the:
+Namespaces are also used by the Kubernetes DNS service to create a URL in the *<name>.<namespace>.svc.cluster.local* form.
 
-```yaml
-$ kubectl api-resources --namespaced=true
+Most of the Kubernetes resources live in such Namespaces, you can list them with:
+
+```bash
+kubectl api-resources --namespaced=true
 ```
 
 To list resources living outside of any Namespace – use the next command:
 
-```yaml
-$ kubectl api-resources --namespaced=false
+```bash
+kubectl api-resources --namespaced=false
 ```
 
 #### Controllers
 
-A *Controller* in the Kubernetes are some continuously working process, which communicates to the API server and checks the current state of a cluster and makes necessary changes to make the *current* state to be equal to the *desired* state.
+A *Controller* in Kubernetes is a continuously working process, which communicates with the API server, checks the current state of a cluster and makes necessary changes to make the *current* state equal to the *desired* state.
 
 Besides the standard Controllers – you can create your own, see [How to Create a Kubernetes Custom Controller Using client-go](https://itnext.io/how-to-create-a-kubernetes-custom-controller-using-client-go-f36a7a7536cc).
 
 ##### `ReplicaSet`
 
 * [ReplicaSet](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/)
-    
+
 * [Key Kubernetes Concepts](https://towardsdatascience.com/key-kubernetes-concepts-62939f4bc08e)
-    
+
 * [Kubernetes KnowHow – Working With ReplicaSet](https://dzone.com/articles/kubernetes-knowhow-working-with-replicaset)
-    
-* [Знакомство с Kubernetes. Часть 4: Реплики (ReplicaSet)](https://ealebed.github.io/posts/2018/%D0%B7%D0%BD%D0%B0%D0%BA%D0%BE%D0%BC%D1%81%D1%82%D0%B2%D0%BE-%D1%81-kubernetes-%D1%87%D0%B0%D1%81%D1%82%D1%8C-4-replicaset/) (*Rus*)
-    
+
 
 `ReplicaSet` is created by the `Deployment` and the main goal of the `ReplicaSet` is to create and scale Pods.
 
-`ReplicaSet` is the next generation of the [`ReplicationController`](https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/) and can use multiple selectors (see [Service, Pod, labels, selectors](https://rtfm.co.ua/en/?p=21104#Service_Pod_labels_selectors)).
+`ReplicaSet` is the next generation of the [`ReplicationController`](https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/) and can use set-based selectors (see [Service, Pod, labels, selectors](#service-pod-labels-selectors)).
 
 It’s recommended to use `Deployment` instead of creating `ReplicaSet` objects directly.
 
-A `ReplicaSet` template example:
+A `ReplicaSet` template example (this file exists in this folder as `my-nginx-rc.yaml`):
 
 ```yaml
 apiVersion: apps/v1
@@ -406,7 +369,7 @@ spec:
       app: my-nginx-rc-app
   template: # PODs template
     metadata:
-      labels: 
+      labels:
         app: my-nginx-rc-app
     spec:
       containers:
@@ -417,23 +380,17 @@ spec:
 ##### `Deployment`
 
 * [Deployments](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
-    
-* [Знакомство с Kubernetes. Часть 5: Развертывания (Deployments)](https://ealebed.github.io/posts/2018/%D0%B7%D0%BD%D0%B0%D0%BA%D0%BE%D0%BC%D1%81%D1%82%D0%B2%D0%BE-%D1%81-kubernetes-%D1%87%D0%B0%D1%81%D1%82%D1%8C-5-deployments/) (*Rus*)
-    
+
 * [Kubernetes Deployments: The Ultimate Guide](https://semaphoreci.com/blog/kubernetes-deployment/)
-    
-* [Deployment Strategies](https://www.weave.works/blog/kubernetes-deployment-strategies)
-    
+
 * [Kubernetes Deployment Tutorial For Beginners](https://devopscube.com/kubernetes-deployment-tutorial/)
-    
-* [Managing Kubernetes Deployments](https://supergiant.io/blog/managing-kubernetes-deployments/)
-    
+
 * [K8s: Deployments vs StatefulSets vs DaemonSets](https://medium.com/stakater/k8s-deployments-vs-statefulsets-vs-daemonsets-60582f0c62d4)
-    
 
-The *Deployment* controller will apply changes to Pods and `RelicaSets` and currently is the most used resource in the Kubernetes to deploy applications.
 
-It’s mainly used for *stateless* applications, but you can attach a [*Persistent Volume*](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) and use it as a *stateful* application.
+The *Deployment* controller will apply changes to Pods and `ReplicaSets` and currently is the most used resource in Kubernetes to deploy applications.
+
+It’s mainly used for *stateless* applications, but you can attach a [*Persistent Volume*](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) and use it for a *stateful* application — although `StatefulSet` is the proper controller for that.
 
 See [stateful](https://whatis.techtarget.com/definition/stateful-app) vs [stateless](https://whatis.techtarget.com/definition/stateless-app).
 
@@ -441,51 +398,53 @@ During a `Deployment` creation – it will create a `ReplicaSet` object which in
 
 `Deployment` used to:
 
-* update Pods – `Deployment` will create a new `ReplicaSet` and will update a deployment’s revision number (`deployment.kubernetes.io/revision: ""` which is used by a `ReplicaSet`)
-    
-* roll-back a deployment if it was unsuccessful using revisions
-    
-* Pods scaling and autoscaling can be done using Deployments (`kubectl scale` и `kubectl autoscale`, see [kubectl Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/))
-    
-* can be used for the canary deployments (see the [Intro to deployment strategies: blue-green, canary, and more](https://dev.to/mostlyjason/intro-to-deployment-strategies-blue-green-canary-and-more-3a3))
-    
+* update Pods – `Deployment` will create a new `ReplicaSet` and will update a deployment’s revision number (`deployment.kubernetes.io/revision`)
+
+* roll back a deployment if it was unsuccessful using revisions (`kubectl rollout undo`)
+
+* scale Pods (`kubectl scale` and `kubectl autoscale`, see [kubectl Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/))
+
+* can be used for canary deployments (see the [Intro to deployment strategies: blue-green, canary, and more](https://dev.to/mostlyjason/intro-to-deployment-strategies-blue-green-canary-and-more-3a3))
+
 
 [![](https://res.cloudinary.com/practicaldev/image/fetch/s--to_dDoP6--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_880/https://rtfm.co.ua/wp-content/uploads/2019/07/07751442-deployment.png)](https://rtfm.co.ua/wp-content/uploads/2019/07/07751442-deployment.png)
 
-Beside of the `Deployments` the [kubectl rolling-update](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#rolling-update) can be used, although `Deployments` is the recommended way.
+The old `kubectl rolling-update` command is deprecated — use `Deployment` updates instead.
+
+For autoscaling based on CPU/memory metrics see [Autoscaling (HPA)](../Autoscaling-HPA/README.md).
 
 ##### `StatefulSet`
 
 * [StatefulSets](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/)
-    
-* [Updating StatefulSets](https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/#updating-statefulsets)
-    
 
-`StatefulSet` are used to manage stateful applications.
 
-It will create a Pod with a unique name directly instead of the `ReplicaSet`. Because of this when using `StatefulSet` you have no ability to run a deployment roll-back. Instead, you can delete a resource or make its scaling.
+`StatefulSet` is used to manage stateful applications.
 
-During the `StatefulSet` updates – a [RollingUpdate](https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/#updating-statefulsets) will be applied to all nodes.
+It will create Pods with unique, stable names (`web-0`, `web-1`, ...) directly instead of going through a `ReplicaSet`. Because of this, when using a `StatefulSet` you have no `Deployment`-style rollout undo. Instead, you can delete a resource or scale it.
+
+During `StatefulSet` updates – an [`OnDelete` or `RollingUpdate`](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies) strategy will be applied to all Pods.
+
+See a full working example in [Kubernetes for Everyone](../kubernetes-for-everyone/README.md).
 
 ##### `DaemonSet`
 
 * [DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/)
-    
 
-`DaemonSet` is used when you need to run an application over all nodes in your cluster – not only on the Worker Nodes. If a new Pod will be created after `DaemonSet` – an application will be deployed on this new Pod as well.
 
-`DaemonSet` is the perfect desition to run applications which has to be present on every node, for example – monitoring, logs collectors, etc.
+`DaemonSet` is used when you need to run an application on **all** (or selected) nodes in your cluster – not only Worker Nodes. When a **new Node** is added to the cluster after the `DaemonSet` – a copy of the Pod will be deployed on this new node automatically; when a node is removed, its Pod is garbage collected.
 
-During this, some nodes will decline to create Pods on them, such as the Master Node for example, because it has the `node-role.kubernetes.io/master:NoSchedule` set (see [Taints and Tolerations](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/)):
+`DaemonSet` is the perfect decision to run applications which have to be present on every node, for example – monitoring agents, log collectors, CNI plugins, kube-proxy itself, etc.
 
-```yaml
-$ kubectl describe node k8s-master | grep Taint
-Taints:             node-role.kubernetes.io/master:NoSchedule
+During this, some nodes will refuse to create Pods on them, such as a Control Plane node, because it has a `NoSchedule` taint set (see [Taints and Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/)):
+
+```bash
+kubectl describe node <control-plane-node> | grep Taint
+# Taints:  node-role.kubernetes.io/control-plane:NoSchedule   (older clusters: node-role.kubernetes.io/master:NoSchedule)
 ```
 
-Respectively, when creating a `DaemonSet` which has to create Pods on the Master Node too you have to specify `tolerations`.
+Respectively, when creating a `DaemonSet` which has to create Pods on the Control Plane nodes too you have to specify `tolerations`.
 
-Such a `DaemonSet` template example:
+Such a `DaemonSet` template example (this file exists in this folder as `my-nginx-ds.yaml`):
 
 ```yaml
 apiVersion: apps/v1
@@ -496,9 +455,9 @@ spec:
   selector:
     matchLabels:
       app: my-nginx-pod
-  template: 
+  template:
     metadata:
-      labels: 
+      labels:
         app: my-nginx-pod
     spec:
       tolerations:
@@ -511,22 +470,22 @@ spec:
         - containerPort: 80
 ```
 
-During `DaemonSet` update – the [RollingUpdate](https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/#updating-statefulsets) for all pods will be applied.
+During `DaemonSet` update – the [`RollingUpdate` strategy](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/#daemonset-update-strategy) for all pods will be applied.
 
-##### `Job`
+A hands-on guide with commands lives in [Deploy DaemonSets](../Deploy-DaemonSets-Service-in-Kubernetes/README.md).
 
-* [Jobs – Run to Completion](https://kubernetes.io/docs/concepts/workloads/controllers/jobs-run-to-completion/)
-    
-* [Однократные задачи в Kubernetes](https://dotsandbrackets.com/one-off-kubernetes-jobs-ru/)
-    
+##### `Job` and `CronJob`
+
+* [Jobs – Run to Completion](https://kubernetes.io/docs/concepts/workloads/controllers/job/run-to-completion/)
+
 * [Working with Kubernetes Jobs](https://medium.com/coryodaniel/working-with-kubernetes-jobs-848914418)
-    
 
-`Job` in the Kubernetes indented to be used to create a Pod which will execute the only one task, once after it will finish a task execution – this Pod will be stopped.
 
-Such a `Job` can create one or more Pods, can run your tasks in parallel, execute this task specified number of attempts.
+A `Job` in Kubernetes is intended to create a Pod which will execute one task, and once it finishes – the Pod is stopped.
 
-A `Job` template example:
+A `Job` can create one or more Pods: `completions` sets how many successful Pods you need in total, `parallelism` how many may run at once, and `backoffLimit` how many failed attempts are tolerated before the Job itself is marked failed.
+
+A `Job` template example (this file exists in this folder as `job-example.yaml`):
 
 ```yaml
 apiVersion: batch/v1
@@ -536,40 +495,44 @@ metadata:
 spec:
   completions: 2
   parallelism: 2
+  backoffLimit: 4
   template:
     metadata:
       name: counter
     spec:
       containers:
       - name: counter
-        image: ubuntu
+        image: ubuntu:22.04
         command: ["bash"]
         args: ["-c",  "for i in {1..10}; do echo $i; done"]
-      restartPolicy: Never
+      restartPolicy: Never    # Jobs require OnFailure or Never
 ```
 
 ###### `CronJob`
 
 Similar to the `Job` but intended to run tasks by a schedule – check the `schedule` parameter below:
 
+> ⚠️ `apiVersion: batch/v1beta1` was removed in Kubernetes 1.25 — always use `batch/v1`.
+
 ```yaml
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cronjob-example
 spec:
   schedule: "*/1 * * * *"
+  concurrencyPolicy: Forbid
   jobTemplate:
     spec:
       completions: 2
-      parallelism: 2     
+      parallelism: 2
       template:
         metadata:
           name: counter
         spec:
           containers:
           - name: counter
-            image: ubuntu
+            image: ubuntu:22.04
             command: ["bash"]
             args: ["-c",  "for i in {1..10}; do echo $i; done"]
           restartPolicy: Never
@@ -579,46 +542,42 @@ spec:
 
 #### **Common**
 
-* [Concepts](https://kubernetes.io/docs/concepts/?origin_team=T08E6NNJJ)
-    
+* [Concepts](https://kubernetes.io/docs/concepts/)
+
 * [Key Kubernetes Concepts](https://towardsdatascience.com/key-kubernetes-concepts-62939f4bc08e)
-    
+
 * [Kubernetes Master Components: Etcd, API Server, Controller Manager, and Scheduler](https://medium.com/jorgeacetozi/kubernetes-master-components-etcd-api-server-controller-manager-and-scheduler-3a0179fc8186)
-    
-* [Resource Quotas](https://kubernetes.io/docs/concepts/policy/resource-quotas/?origin_team=T08E6NNJJ)
-    
-* [Kubernetes](https://ealebed.github.io/tags/kubernetes/) (*все посты по тегу, интересный блог у человека*)
-    
-* [kubectl Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/?origin_team=T08E6NNJJ)
-    
-* [Taints and Tolerations](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/?origin_team=T08E6NNJJ)
-    
+
+* [Resource Quotas](https://kubernetes.io/docs/concepts/policy/resource-quotas/)
+
+* [kubectl Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
+
+* [Taints and Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/)
+
 
 #### **Networking**
 
-* [Service](https://kubernetes.io/docs/concepts/services-networking/service/?origin_team=T08E6NNJJ)
-    
-* [Cloud Providers](https://kubernetes.io/docs/concepts/cluster-administration/cloud-providers/?origin_team=T08E6NNJJ)
-    
+* [Service](https://kubernetes.io/docs/concepts/services-networking/service/)
+
+* [Cloud Providers](https://kubernetes.io/docs/concepts/cluster-administration/cloud-providers/)
+
 * [Understanding Kubernetes Kube-Proxy](https://supergiant.io/blog/understanding-kubernetes-kube-proxy/)
-    
+
 * [Kubernetes Services: A Beginner’s Guide](https://www.bmc.com/blogs/kubernetes-services/)
-    
+
 * [Kubernetes – Services Explained](https://www.youtube.com/watch?v=5lzUpDtmWgM)
-    
+
 * [Using Kubernetes LoadBalancer Services on AWS](https://blog.giantswarm.io/load-balancer-service-use-cases-on-aws/)
-    
+
 
 #### **Deployments**
 
 * [Kubernetes Deployment Strategies](https://www.weave.works/blog/kubernetes-deployment-strategies)
-    
+
 * [Kubernetes Deployments: The Ultimate Guide](https://semaphoreci.com/blog/kubernetes-deployment/)
-    
+
 * [Kubernetes Deployment Tutorial For Beginners](https://devopscube.com/kubernetes-deployment-tutorial/)
-    
-* [Managing Kubernetes Deployments](https://supergiant.io/blog/managing-kubernetes-deployments/)
-    
+
 * [K8s: Deployments vs StatefulSets vs DaemonSets](https://medium.com/stakater/k8s-deployments-vs-statefulsets-vs-daemonsets-60582f0c62d4)
 
 ### If you like this article, please share with others. ❤️

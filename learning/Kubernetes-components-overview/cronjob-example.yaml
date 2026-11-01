@@ -1,20 +1,28 @@
-apiVersion: batch/v1beta1
+# CronJob — runs a Job on a schedule.
+#
+# NOTE: batch/v1beta1 was deprecated in 1.21 and REMOVED in Kubernetes 1.25.
+# Always use batch/v1 today.
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cronjob-example
 spec:
-  schedule: "*/1 * * * *"
-  jobTemplate:
+  schedule: "*/1 * * * *"          # every minute (cron syntax, UTC)
+  concurrencyPolicy: Forbid        # Forbid | Replace | Allow (default) — skip a run if the previous one is still active
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:                     # this is a regular Job spec
     spec:
-      completions: 2
-      parallelism: 2     
+      completions: 2               # 2 successful Pods in total...
+      parallelism: 2               # ...running 2 at a time
+      backoffLimit: 4              # give up after 4 failed Pod attempts
       template:
         metadata:
           name: counter
         spec:
+          restartPolicy: Never     # Jobs require OnFailure or Never
           containers:
           - name: counter
-            image: ubuntu
+            image: ubuntu:22.04
             command: ["bash"]
-            args: ["-c",  "for i in {1..10}; do echo $i; done"]
-          restartPolicy: Never
+            args: ["-c", "for i in {1..10}; do echo $i; done"]

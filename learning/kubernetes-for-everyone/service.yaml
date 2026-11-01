@@ -1,11 +1,15 @@
+# A ClusterIP Service (the default type) that selects Pods by label.
+#
+# NOTE: the previous version selected "app: MyApp", which matches no Pod in this
+# folder — it now selects the Pod from pod.yaml (app: myapp).
 apiVersion: v1
 kind: Service
 metadata:
   name: my-service
 spec:
   selector:
-    app: MyApp
+    app: myapp                    # must match the labels on the target Pods (see pod.yaml)
   ports:
   - protocol: TCP
-    port: 80
-    targetPort: 9376
+    port: 80                      # port the Service exposes inside the cluster
+    targetPort: 80                # port the container listens on

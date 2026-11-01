@@ -1,0 +1,16 @@
+# Helm values for the kube-prometheus-stack chart (see README for the install command).
+prometheus:
+  prometheusSpec:
+    retention: 15d
+    resources:
+      requests:
+        memory: 1Gi
+        cpu: 500m
+      limits:
+        memory: 2Gi
+        cpu: 1000m
+
+grafana:
+  persistence:
+    enabled: true
+    size: 10Gi
