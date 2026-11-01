@@ -208,7 +208,7 @@ metadata:
 spec:
   containers:
     - name: cuda-test
-      image: "k8s.gcr.io/cuda-vector-add:v0.1"
+      image: "nginx" # any image works for this exercise; the old k8s.gcr.io/cuda-vector-add image is no longer published
   nodeSelector: # add this
     accelerator: nvidia-tesla-p100 # the selection label
 ```
@@ -527,6 +527,8 @@ kubectl autoscale deploy nginx --min=5 --max=10 --cpu-percent=80
 kubectl get hpa nginx
 ```
 
+*Note*: the HPA needs [metrics-server](https://github.com/kubernetes-sigs/metrics-server) running in the cluster, otherwise `TARGETS` will show `<unknown>/80%`. On minikube: `minikube addons enable metrics-server`.
+
 </p>
 </details>
 
@@ -656,7 +658,7 @@ spec:
 Test if the deployment was successful from within a Pod:
 ```
 # run a wget to the Service my-app-svc
-kubectl run -it --rm --restart=Never busybox --image=gcr.io/google-containers/busybox --command -- wget -qO- my-app-svc
+kubectl run -it --rm --restart=Never busybox --image=busybox:1.28 --command -- wget -qO- my-app-svc
 
 version-1
 ```
@@ -707,7 +709,7 @@ spec:
 Observe that calling the ip exposed by the service the requests are load balanced across the two versions:
 ```
 # run a busyBox pod that will make a wget call to the service my-app-svc and print out the version of the pod it reached.
-kubectl run -it --rm --restart=Never busybox --image=gcr.io/google-containers/busybox -- /bin/sh -c 'while sleep 1; do wget -qO- my-app-svc; done'
+kubectl run -it --rm --restart=Never busybox --image=busybox:1.28 -- /bin/sh -c 'while sleep 1; do wget -qO- my-app-svc; done'
 
 version-1
 version-1
@@ -717,7 +719,7 @@ version-2
 version-1
 ```
 
-If the v2 is stable, scale it up to 4 replicas and shoutdown the v1:
+If the v2 is stable, scale it up to 4 replicas and shutdown the v1:
 ```
 kubectl scale --replicas=4 deploy my-app-v2
 kubectl delete deploy my-app-v1

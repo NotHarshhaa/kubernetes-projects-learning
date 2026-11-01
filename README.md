@@ -366,6 +366,7 @@ Before diving in, ensure you have:
 
 | Certification | Resources |
 |---------------|-----------|
+| CKAD | [Hands-on Exercises](CKAD-exercises/README.md) • [Official Curriculum](https://github.com/cncf/curriculum) • [CKAD on CNCF](https://www.cncf.io/training/certification/ckad/) |
 | CKA | [Practice Exercises](https://github.com/alijahnas/CKA-practice-exercises) • [Additional Exercises](https://github.com/chadmcrowell/CKA-Exercises) |
 | CKS | [Study Guide](https://github.com/walidshaari/Certified-Kubernetes-Security-Specialist) • [Video Course](https://www.youtube.com/watch?v=d9xfB5qaOfg) |
 

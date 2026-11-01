@@ -35,8 +35,7 @@ kubectl get ep # endpoints
 
 ```bash
 kubectl get svc nginx # get the IP (something like 10.108.93.130)
-kubectl run busybox --rm --image=busybox -it --restart=Never --
-wget -O- [PUT THE POD'S IP ADDRESS HERE]:80
+kubectl run busybox --rm --image=busybox -it --restart=Never -- wget -O- <CLUSTER-IP>:80
 exit
 ```
 
@@ -226,6 +225,130 @@ kubectl create -f policy.yaml
 kubectl run busybox --image=busybox --rm -it --restart=Never -- wget -O- http://nginx:80 --timeout 2                          # This should not work. --timeout is optional here. But it helps to get answer more quickly (in seconds vs minutes)
 kubectl run busybox --image=busybox --rm -it --restart=Never --labels=access=granted -- wget -O- http://nginx:80 --timeout 2  # This should be fine
 ```
+
+</p>
+</details>
+
+## Ingress
+
+kubernetes.io > Documentation > Concepts > Services, Load Balancing, and Networking > [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/)
+
+*Note*: Ingress rules do nothing by themselves — an **Ingress Controller** (e.g. ingress-nginx) must be installed. On minikube: `minikube addons enable ingress`.
+
+### Create two deployments (coffee and tea), expose both on port 80, then create an Ingress that routes `cafe.local/coffee` and `cafe.local/tea` to them. Verify with curl
+
+<details><summary>show</summary>
+<p>
+
+```bash
+kubectl create deploy coffee --image=hashicorp/http-echo:0.2.3 -- args='-text=coffee-v1'
+kubectl create deploy tea --image=hashicorp/http-echo:0.2.3 -- args='-text=tea-v1'
+kubectl expose deploy coffee --port=80
+kubectl expose deploy tea --port=80
+
+vi ingress.yaml
+```
+
+```YAML
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cafe-ingress
+spec:
+  ingressClassName: nginx              # must match the controller's ingress class
+  rules:
+  - host: cafe.local
+    http:
+      paths:
+      - path: /coffee
+        pathType: Prefix
+        backend:
+          service:
+            name: coffee
+            port:
+              number: 80
+      - path: /tea
+        pathType: Prefix
+        backend:
+          service:
+            name: tea
+            port:
+              number: 80
+```
+
+```bash
+kubectl apply -f ingress.yaml
+kubectl get ingress # wait for an ADDRESS to appear
+
+# verify (get the ingress address first)
+ING=$(kubectl get ingress cafe-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+curl --resolve cafe.local:80:$ING http://cafe.local/coffee   # -> coffee-v1
+curl --resolve cafe.local:80:$ING http://cafe.local/tea      # -> tea-v1
+```
+
+</p>
+</details>
+
+### Create an Ingress with TLS termination for host `cafe.local`, backed by a Secret named `cafe-tls`
+
+<details><summary>show</summary>
+<p>
+
+```bash
+# quick self-signed cert for practice
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout tls.key -out tls.crt -subj "/CN=cafe.local"
+kubectl create secret tls cafe-tls --cert=tls.crt --key=tls.key
+
+vi tls-ingress.yaml
+```
+
+```YAML
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cafe-tls-ingress
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - cafe.local
+    secretName: cafe-tls        # the controller terminates TLS with this cert
+  rules:
+  - host: cafe.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: coffee
+            port:
+              number: 80
+```
+
+```bash
+kubectl apply -f tls-ingress.yaml
+kubectl get ingress cafe-tls-ingress # check the PORTS column shows 80, 443
+```
+
+*Note*: remember the three `pathType` values for the exam: `Prefix`, `Exact`, `ImplementationSpecific`.
+
+</p>
+</details>
+
+### Troubleshooting access: list the endpoints behind a service and explain what it means when the list is empty
+
+<details><summary>show</summary>
+<p>
+
+```bash
+kubectl get ep coffee          # or: kubectl get endpoints coffee
+kubectl get endpointslices -l kubernetes.io/service-name=coffee   # modern equivalent
+kubectl get pods -l app=coffee --show-labels
+```
+
+An **empty endpoints list** means the Service's `selector` matches no Pods — classic causes: label typo, Pods not ready (failing readinessProbe), or Pods in a different namespace (selectors are namespace-scoped). This is one of the most common exam troubleshooting tasks.
 
 </p>
 </details>

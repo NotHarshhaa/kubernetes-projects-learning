@@ -13,7 +13,9 @@
 
 <br>#Tips, export to variable<br>
 <br>export ns="-n secret-ops"</br>
-<br>export do="--dry-run=client -oyaml"</br>
+<br>export do="--dry-run=client -o yaml"</br>
+
+> These tiny aliases save a lot of typing during the 2-hour exam — set them right after the exam starts.
 ## ConfigMaps
 
 kubernetes.io > Documentation > Tasks > Configure Pods and Containers > [Configure a Pod to Use a ConfigMap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/)
@@ -353,7 +355,7 @@ status: {}
 ## Limit Ranges
 kubernetes.io > Documentation > Concepts > Policies > Limit Ranges (https://kubernetes.io/docs/concepts/policy/limit-range/)
 
-### Create a namespace named limitrange with a LimitRange that limits pod memory to a max of 500Mi and min of 100Mi
+### Create a namespace named 'one' with a LimitRange that limits pod memory to a max of 500Mi and min of 100Mi
 
 <details><summary>show</summary>
 <p>
@@ -955,8 +957,10 @@ status: {}
 
 ```bash
 kubectl create -f pod.yaml
-kubectl describe pod nginx # will see that a new secret called myuser-token-***** has been mounted
+kubectl describe pod nginx # will show the ServiceAccount and the mounted projected token volume
 ```
+
+*Note*: since Kubernetes 1.24, no `myuser-token-*****` Secret is auto-created anymore — the Pod receives a short-lived, auto-rotated **projected token** volume instead. See the next exercise for generating a token manually.
 
 </p>
 </details>

@@ -144,3 +144,58 @@ kubectl delete po box
 </p>
 </details>
 
+### Create a Pod with an nginx container and a busybox sidecar container that continuously logs the date to a shared emptyDir volume. Verify the sidecar's output, then delete the Pod
+
+*Note*: there are two "sidecar" patterns. The **classic** one is a second regular container (`spec.containers`). Since Kubernetes 1.29 you can also use a **native sidecar**: an `initContainer` with `restartPolicy: Always` — it starts before (and alongside) the main containers, runs for the Pod's whole lifetime, and doesn't block Pod startup. Both are shown below.
+
+<details><summary>show</summary>
+<p>
+
+```bash
+vi pod.yaml
+```
+
+```YAML
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-with-logger
+spec:
+  # native sidecar (K8s >= 1.29): starts before and runs alongside the main container
+  initContainers:
+  - name: logger
+    image: busybox:1.36
+    restartPolicy: Always        # <-- this makes the init container a native sidecar
+    command: ['/bin/sh', '-c', 'while true; do date >> /var/log/dates.log; sleep 2; done']
+    volumeMounts:
+    - name: logs
+      mountPath: /var/log
+  containers:
+  - name: web
+    image: nginx
+    volumeMounts:
+    - name: logs
+      mountPath: /var/log
+  volumes:
+  - name: logs
+    emptyDir: {}
+```
+
+```bash
+kubectl create -f pod.yaml
+
+# verify the sidecar is writing to the shared volume
+kubectl exec web-with-logger -c web -- tail /var/log/dates.log
+
+# check container statuses - the sidecar shows as a running init container
+kubectl get pod web-with-logger -o jsonpath='{.status.initContainerStatuses[*].name}{"\n"}'
+
+# classic pattern instead: move the logger to spec.containers as a second entry
+# (same volume mount, no restartPolicy needed)
+
+kubectl delete po web-with-logger
+```
+
+</p>
+</details>
+

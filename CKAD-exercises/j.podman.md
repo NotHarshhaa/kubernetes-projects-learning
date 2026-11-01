@@ -106,7 +106,7 @@ Hello, World!
 </p>
 </details>
 
- Verify that the registry contains the pushed image and that you can pull it
+### Verify that the registry contains the pushed image and that you can pull it
 
 <details><summary>show</summary>
 <p>
@@ -144,7 +144,7 @@ ef4b14a72d02ae0577eb0632d084c057777725c279e12ccf5b0c6e4ff5fd598b
 ```bash
 :~$ kubectl run simpleapp --image=$registry_ip:5000/simpleapp --port=80
 
-:~$ curl ${kubectl get pods simpleapp -o jsonpath='{.status.podIP}'}
+:~$ curl $(kubectl get pod simpleapp -o jsonpath='{.status.podIP}')
 Hello, World!
 ```
 
@@ -180,7 +180,7 @@ Hello, World!
 <p>
 
 ```bash
-:~$ kubectl create secret generic mysecret --from-file=.dockerconfigjson=${XDG_RUNTIME_DIR}/containers/auth.json --type=kubernetes.io/dockeconfigjson
+:~$ kubectl create secret generic mysecret --from-file=.dockerconfigjson=${XDG_RUNTIME_DIR}/containers/auth.json --type=kubernetes.io/dockerconfigjson
 secret/mysecret created
 :~$ kubectl create secret docker-registry mysecret2 --docker-server=https://index.docker.io/v1/ --docker-username=$YOUR_USR --docker-password=$YOUR_PWD
 secret/mysecret2 created

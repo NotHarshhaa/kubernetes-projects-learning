@@ -274,3 +274,89 @@ cat passwd
 
 </p>
 </details>
+
+## StorageClasses and dynamic provisioning
+
+kubernetes.io > Documentation > Concepts > Storage > [Storage Classes](https://kubernetes.io/docs/concepts/storage/storage-classes/)
+
+### List the StorageClasses in your cluster (and which is the default). Then create a PVC that uses dynamic provisioning via the default StorageClass, and verify a PV was created automatically
+
+<details><summary>show</summary>
+<p>
+
+```bash
+kubectl get storageclass        # short: sc
+kubectl get sc -o jsonpath='{range .items[?(@.metadata.annotations.storageclass\.kubernetes\.io/is-default-class=="true")]}{.metadata.name}{" is the default\n"}{end}'
+```
+
+```bash
+vi pvc-dynamic.yaml
+```
+
+```YAML
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dynamic-pvc
+spec:
+  # NO storageClassName and NO pre-created PV needed:
+  # the claim is provisioned by the default StorageClass automatically
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+```bash
+kubectl apply -f pvc-dynamic.yaml
+kubectl get pvc dynamic-pvc     # should be 'Bound' within seconds
+kubectl get pv                  # a NEW pv was auto-created for this claim
+kubectl describe pvc dynamic-pvc # events show the provisioner at work
+```
+
+*Note*: on a plain kubeadm/killerkoda cluster there may be **no default StorageClass** — then the PVC stays `Pending`. You can create a simple local-path StorageClass (e.g. [rancher local-path-provisioner](https://github.com/rancher/local-path-provisioner)) or, on minikube, it's enabled by default.
+
+</p>
+</details>
+
+### Create a PVC that is bound to a *specific* StorageClass named 'fast', with reclaim policy Delete — then delete the claim and verify what happens to the PV
+
+<details><summary>show</summary>
+<p>
+
+```YAML
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast
+provisioner: k8s.io/minikube-hostpath   # adjust per cluster (cloud: ebs.csi.aws.com, pd.csi.storage.gke.io, ...)
+reclaimPolicy: Delete                   # Delete (default for dynamic) or Retain
+volumeBindingMode: Immediate            # Immediate or WaitForFirstConsumer
+```
+
+```bash
+kubectl apply -f fast-sc.yaml
+```
+
+```YAML
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fast-pvc
+spec:
+  storageClassName: fast
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+```bash
+kubectl apply -f fast-pvc.yaml
+kubectl get pv     # note the claimRef and RECLAIM POLICY column
+kubectl delete pvc fast-pvc
+kubectl get pv     # with Delete policy the PV disappears; with Retain it stays 'Released'
+```
+
+</p>
+</details>

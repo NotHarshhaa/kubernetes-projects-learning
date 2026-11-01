@@ -148,8 +148,46 @@ LAST SEEN   TYPE      REASON      OBJECT              MESSAGE
 collect failed pods namespace by namespace
 
 ```sh
-kubectl get events -o json | jq -r '.items[] | select(.message | contains("failed liveness probe")).involvedObject | .namespace + "/" + .name'
+kubectl get events -o json | jq -r '.items[] | select(.message | contains("Liveness probe failed")).involvedObject | .namespace + "/" + .name'
 ```
+
+Note the filter matches the actual event message text: `Liveness probe failed: ...`. If the events have rotated out of the API (they expire after ~1h), re-trigger the failure first.
+
+</p>
+</details>
+
+### Create an nginx pod with a startupProbe that runs 'ls' with a failureThreshold of 30 and periodSeconds of 10 (i.e. up to 5 minutes for the app to boot). Confirm the startupProbe replaces liveness/readiness probing until it succeeds
+
+<details><summary>show</summary>
+<p>
+
+```YAML
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+    startupProbe: # runs first, and disables liveness/readiness until it succeeds
+      exec:
+        command: ['ls']
+      failureThreshold: 30
+      periodSeconds: 10
+    livenessProbe: # only starts AFTER the startupProbe has passed
+      exec:
+        command: ['ls']
+```
+
+```bash
+kubectl create -f pod.yaml
+kubectl describe po nginx | grep -iE "startup|liveness"
+# events show "Starting container" -> "Started container" -> probe transitions
+kubectl delete po nginx
+```
+
+Why this matters: without a startupProbe, a slow-booting app can be killed by its livenessProbe before it finishes starting (crash loop). The startupProbe gives it a grace window — a much better pattern than a huge `initialDelaySeconds`.
 
 </p>
 </details>
@@ -205,14 +243,63 @@ kubectl delete po busybox --force --grace-period=0
 </details>
 
 
-### Get CPU/memory utilization for nodes ([metrics-server](https://github.com/kubernetes-incubator/metrics-server) must be running)
+### Get CPU/memory utilization for nodes and pods ([metrics-server](https://github.com/kubernetes-sigs/metrics-server) must be running)
 
 <details><summary>show</summary>
 <p>
 
 ```bash
 kubectl top nodes
+kubectl top pods                     # current namespace
+kubectl top pods --all-namespaces    # or -A
+kubectl top pods --containers        # per-container breakdown
 ```
+
+</p>
+</details>
+
+### Add a debug (ephemeral) container to a running pod, without restarting it
+
+<details><summary>show</summary>
+<p>
+
+Ephemeral containers are the exam-friendly way to debug a distroless/stripped image that has no shell:
+
+```bash
+kubectl run nginx --image=nginx --restart=Never
+
+# inject a temporary toolbox container into the running pod
+kubectl debug -it nginx --image=busybox:1.36 --target=nginx -- sh
+
+# from inside: test connectivity to the app container's localhost
+wget -qO- localhost:80
+
+# or, non-interactive: list processes of the app container via a copy of the pod
+kubectl debug nginx --image=busybox:1.36 --copy-to=nginx-debug -- sleep 3600
+kubectl delete po nginx nginx-debug
+```
+
+</p>
+</details>
+
+## API deprecations
+
+### Which apiVersion would you use for a CronJob on Kubernetes 1.31? And for Ingress? Where do you check this quickly?
+
+<details><summary>show</summary>
+<p>
+
+- **CronJob**: `batch/v1` (batch/v1beta1 was removed in 1.25)
+- **Ingress**: `networking.k8s.io/v1` (extensions/v1beta1 was removed in 1.22)
+
+Fastest checks during the exam:
+
+```bash
+kubectl api-resources | grep -i cronjob   # shows the API group & version in use
+kubectl explain cronjob                   # shows the apiVersion at the top
+```
+
+The deprecation policy and migration guides live at kubernetes.io > Reference > [Deprecated API Migration Guide](https://kubernetes.io/docs/reference/using-api/deprecation-guide/) — bookmark-worthy for the "API deprecations" curriculum topic.
 
 </p>
 </details>

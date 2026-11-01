@@ -113,3 +113,25 @@ kubectl get op
 
 </p>
 </details>
+
+### Verify the CRD is registered: list all CRDs, confirm the new API is available, and check which fields the API expects
+
+<details><summary>show</summary>
+<p>
+
+```bash
+kubectl get crd                        # all CustomResourceDefinitions in the cluster
+kubectl get crd operators.stable.example.com -o yaml
+
+# the new group/version now shows up in the API discovery
+kubectl api-resources --api-group=stable.example.com
+
+# 'explain' works for CRDs too — handy to recall the schema during the exam
+kubectl explain operator
+kubectl explain operator.spec --recursive
+```
+
+*Note*: a CRD only defines the *schema*; the behaviour (reconciliation) comes from an **Operator** — a controller that watches these custom resources. The exam's "resources that extend Kubernetes (CRD, Operators)" topic mostly tests CRD creation and consuming existing operators.
+
+</p>
+</details>
