@@ -1,43 +1,59 @@
+# RBAC Role for the Jenkins pipeline, namespace: webapps.
+#
+# Fixes from the previous version:
+#   * every resource was being granted against EVERY apiGroup (e.g. "deployments"
+#     under the core "" group, where it doesn't exist) — now split per apiGroup
+#   * "ingress" is not a resource name — it is "ingresses"
+#   * nodes, namespaces and persistentvolumes are CLUSTER-SCOPED: a namespaced
+#     Role cannot grant them, so they were silently ineffective (use a ClusterRole
+#     + ClusterRoleBinding only if you really need them)
+#   * the "extensions" group was removed in Kubernetes 1.16 and
+#     "componentstatuses" is deprecated — both dropped
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: app-role
   namespace: webapps
 rules:
-  - apiGroups:
-      - ""                           # Core API group
-      - apps
-      - autoscaling
-      - batch
-      - extensions
-      - policy
-      - rbac.authorization.k8s.io
+  # Core API group (apiVersion: v1)
+  - apiGroups: [""]
     resources:
       - pods
+      - pods/log
       - configmaps
-      - deployments
-      - daemonsets
-      - componentstatuses
       - events
       - endpoints
-      - horizontalpodautoscalers
-      - ingress
-      - jobs
-      - limitranges
-      - namespaces
-      - nodes
-      - persistentvolumes
       - persistentvolumeclaims
-      - resourcequotas
-      - replicasets
       - replicationcontrollers
       - serviceaccounts
       - services
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-      - delete
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Workload controllers (apiVersion: apps/v1)
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - daemonsets
+      - replicasets
+      - statefulsets
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Autoscaling (apiVersion: autoscaling/v2)
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Jobs and CronJobs (apiVersion: batch/v1)
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Ingresses (apiVersion: networking.k8s.io/v1)
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - ingresses
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Disruption budgets (apiVersion: policy/v1)
+  - apiGroups: ["policy"]
+    resources:
+      - poddisruptionbudgets
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

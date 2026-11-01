@@ -4,9 +4,11 @@
 
 ### **In this article we are deploying Spring Boot application on K8S**
 
+> ℹ️ The application manifests used below (`db-deployment.yaml`, `app-deployment.yaml`) live in the source repository [SushantOps/SpringBootOnK8S_PS](https://github.com/SushantOps/SpringBootOnK8S_PS) — clone it in Step 6 before running them.
+
 # **Step-by-Step Implementation:-**
 
-## Step 1 — Create an **t2.medium** Instance
+## Step 1 — Create a **t2.medium** Instance
 
 ![](https://miro.medium.com/v2/resize:fit:736/1*m1tuu0xpgyaPuIA97M8cRw.png)
 
@@ -19,7 +21,7 @@ yum install docker -y
 systemctl enable docker
 systemctl start docker
 systemctl status docker
-docker — version
+docker --version
 ```
 
 ![](https://miro.medium.com/v2/resize:fit:736/1*8qxOf5ULaFfT38rNUXx9ag.png)
@@ -54,7 +56,7 @@ After that we can check the minikube version ,
 /usr/local/bin/minikube version
 ```
 
-**Step 5 — Install kubectl command , given permission to kubectl and check version of it.**
+**Step 5 — Install kubectl, set permissions, and check the version.**
 
 ```bash
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -95,7 +97,7 @@ kubectl get pods
 check database and it’s content so go inside the container as , ( password is **root** ) so we can see the db create from the container .
 
 ```bash
-/usr/local/bin/kubectl exec -it <POD_NAME>/bin/bash
+/usr/local/bin/kubectl exec -it <POD_NAME> -- /bin/bash
 
 mysql -u root -p
 ```
@@ -170,12 +172,12 @@ Port forwarding is a networking technique used to redirect network traffic from 
 
 ![](https://miro.medium.com/v2/resize:fit:736/1*uHfR-a4k69dTgIQKPUhaEQ.png)
 
-## **Step 10** — go to **POSTMAN** and check the methods you get replay
+## **Step 10** — go to **POSTMAN** and check the methods; you get replies from the API
 
 Now go to the database in the server and check the entries done by you in the SQL database.
 
 ```bash
-/usr/local/bin/kubectl exec -it <mysql_pod_name>/bin/bash
+/usr/local/bin/kubectl exec -it <mysql_pod_name> -- /bin/bash
 ```
 
 **step 11 — Now we will open the Dashboard of K8S. Inside EC2 our minikube is running so we are setting a proxy for all the local address.The proxy server is started on port 8001.**
@@ -183,6 +185,8 @@ Now go to the database in the server and check the entries done by you in the SQ
 ```bash
 /usr/local/bin/kubectl proxy --address='0.0.0.0' --accept-hosts='^*$'
 ```
+
+> ⚠️ **Security warning:** binding `kubectl proxy` to `0.0.0.0` with `--accept-hosts='^*$'` exposes an *unauthenticated* gateway to your whole cluster on a public EC2 IP. This is fine for a throwaway lab; never do it on a shared or production machine. Locally, plain `kubectl proxy` (localhost only) is enough for the dashboard.
 
 ![](https://miro.medium.com/v2/resize:fit:736/1*zNr_s2M15kfdMt3dErvuQA.png)
 

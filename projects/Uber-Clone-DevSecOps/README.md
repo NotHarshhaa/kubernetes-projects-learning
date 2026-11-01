@@ -8,6 +8,24 @@ In the fast-paced world of app development, the need for a seamless and secure C
 
 **Github Repo** :- [uber-clone](https://github.com/SushantOps/uber-clone.git)
 
+> ℹ️ **About this folder:** `jenkinsfile` contains the pipeline used in this project (pushing images to the `NotHarshhaa` Docker Hub account — change `DOCKER_IMAGE` in it to your own). The application code, `EKS_TERRAFORM/` and the `K8S/` manifests (`deployment.yml`, `service.yml`) all live in the GitHub repo above and are checked out by the pipeline.
+
+## Tools & credentials the pipeline expects
+
+The pipeline scripts reference these by **exact name** — create them before running, or the stages will fail with "tool not found" / "credential not found":
+
+| Referenced as | Where to create | What |
+|---------------|-----------------|------|
+| `jdk17` | Manage Jenkins → Tools | JDK 17 (Eclipse Temurin installer) |
+| `node16` | Manage Jenkins → Tools | NodeJS 16 |
+| `sonar-scanner` | Manage Jenkins → Tools | SonarQube Scanner |
+| `DP-Check` | Manage Jenkins → Tools | OWASP Dependency-Check (6.5.1) |
+| `sonar-server` | Manage Jenkins → System → SonarQube servers | SonarQube server URL + token |
+| `Sonar-token` | Manage Jenkins → Credentials | Secret text — the SonarQube token |
+| `docker` | Manage Jenkins → Credentials | Username with password — Docker Hub credentials |
+| `k8s` | Manage Jenkins → Credentials | Secret file — the kubeconfig (`secret-file.txt`) from STEP 10 |
+| `terraform` | Manage Jenkins → Tools | Path to the terraform binary (STEP 5) |
+
 ## **STEP 1: Launch an Ubuntu instance (T2.large) :-**
 
 Launch an AWS T2 Large Instance. Use the image as Ubuntu. You can create a new key pair or use an existing one. Enable HTTP and HTTPS settings in the Security Group and open all ports .
@@ -32,7 +50,7 @@ Select the Role that created earlier and click on Update IAM role.
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*ph05Dw_YwIsr4CPV.png)
 
-Connect the instance to Mobaxtreme or Putty
+Connect the instance to MobaXterm or Putty
 
 ## **STEP 3: Installations of Packages :-**
 
@@ -80,7 +98,7 @@ newgrp docker
 Now provide executable permissions to shell script
 
 ```bash
-chmod 777 script1.sh
+chmod +x script1.sh
 sh script1.sh
 ```
 
@@ -121,7 +139,7 @@ sudo ./aws/install
 Now provide executable permissions to shell script
 
 ```bash
-chmod 777 script2.sh
+chmod +x script2.sh
 sh script2.sh
 ```
 
@@ -144,17 +162,19 @@ sudo chmod 777 /var/run/docker.sock
 docker run -d --name sonar -p 9000:9000 sonarqube:lts-community
 ```
 
+> ⚠️ `chmod 777 /var/run/docker.sock` lets any local user control Docker (effectively root on the host). It's a common lab shortcut so Jenkins can talk to Docker without sudo — acceptable on a throwaway single-user instance, but never on a shared machine. The cleaner fix is adding the `jenkins` user to the `docker` group (`sudo usermod -aG docker jenkins`).
+
 ## **STEP 4: Connect to Jenkins and Sonarqube :-**
 
 Now copy the public IP address of ec2 and paste it into the browser
 
 ```bash
-<Ec2-ip:8080> #you will Jenkins login page
+<Ec2-ip>:8080   # you will see the Jenkins login page
 ```
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*6GvmvuP5IoyPXGG3)
 
-Connect your Instance to Putty or Mobaxtreme and provide the below command for the Administrator password
+Connect your Instance to Putty or MobaXterm and provide the below command for the Administrator password
 
 ```bash
 sudo cat /var/lib/jenkins/secrets/initialAdminPassword
@@ -187,13 +207,13 @@ Update New password, This is Sonar Dashboard.
 
 Now go to Jenkins and add a terraform plugin to provision the AWS EKS using the Pipeline Job.
 
-Go to Jenkins dashboard –&gt; Manage Jenkins –&gt; Plugins
+Go to Jenkins dashboard → Manage Jenkins → Plugins
 
 Available Plugins, Search for Terraform and install it.
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*NKbH4PhPoA2t-IXz)
 
-Go to Mobaxtream and use the below command
+Go to MobaXterm and use the below command
 
 let’s find the path to our Terraform (we will use it in the tools section of Terraform)
 
@@ -203,7 +223,7 @@ which terraform
 
 ![](https://miro.medium.com/v2/resize:fit:706/0*ZfU3jF_KlLnFRAew)
 
-Now come back to Manage Jenkins –&gt; Tools
+Now come back to Manage Jenkins → Tools
 
 Add the terraform in Tools
 
@@ -291,7 +311,7 @@ Ec2 instance is created for the Node group
 
 Go to Jenkins dashboard
 
-Manage Jenkins –&gt; Plugins –&gt; Available Plugins
+Manage Jenkins → Plugins → Available Plugins
 
 Search for the Below Plugins
 
@@ -319,7 +339,7 @@ Search for the Below Plugins
 
 ## **STEP 7: Configure in Global Tool Configuration :-**
 
-Goto Manage Jenkins → Tools → Install JDK(17) and NodeJs(16)→ Click on Apply and Save
+Go to Manage Jenkins → Tools → Install JDK(17) and NodeJs(16)→ Click on Apply and Save
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*vzZRbUCSN0IMqIFM)
 
@@ -341,7 +361,7 @@ Click apply and save.
 
 ## **STEP 8: Configure Sonar Server in Manage Jenkins :-**
 
-Grab the Public IP Address of your EC2 Instance, Sonarqube works on Port 9000, so &lt;Public IP&gt;:9000. Goto your Sonarqube Server. Click on Administration → Security → Users → Click on Tokens and Update Token → Give it a name → and click on Generate Token
+Grab the Public IP Address of your EC2 Instance, Sonarqube works on Port 9000, so open `<Public IP>:9000`. Go to your Sonarqube Server. Click on Administration → Security → Users → Click on Tokens and Update Token → Give it a name → and click on Generate Token
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*WF7CU5JxPkv9I5Mf)
 
@@ -353,7 +373,7 @@ Create a token with a name and generate
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*wmo0v6TZas5pxL35)
 
-copy Token , Goto Jenkins Dashboard → Manage Jenkins → Credentials → Add Secret Text. It should look like this
+copy Token , Go to Jenkins Dashboard → Manage Jenkins → Credentials → Add Secret Text. It should look like this
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*PUpRah8c3lig8DvQ)
 
@@ -384,21 +404,21 @@ Administration → Configuration →Webhooks
 Add details
 
 ```bash
-#in url section of quality gate
-<http://jenkins-public-ip:8090>/sonarqube-webhook/
+# in the URL section of the quality gate webhook — Jenkins listens on 8080, not 8090
+http://<jenkins-public-ip>:8080/sonarqube-webhook/
 ```
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*ISW6D59PGyFGI17T.png)
 
 Now add Docker credentials to the Jenkins to log in and push the image
 
-Manage Jenkins –&gt; Credentials –&gt; global –&gt; add credential
+Manage Jenkins → Credentials → global → add credential
 
 Add DockerHub Username and Password under Global Credentials and create.
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*6qyutwoP8QL20ZEL)
 
-## **STEP 09: RUN an Pipeline :-**
+## **STEP 9: Run a Pipeline :-**
 
 Add this code to Pipeline
 
@@ -479,7 +499,7 @@ pipeline{
 }
 ```
 
-Click on Apply and save. amd Build now,
+Click on Apply and save, and Build now,
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*lJs6gEQCa4wJJtxU)
 
@@ -526,7 +546,7 @@ Install Kubernetes Plugin, Once it’s installed successfully
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*yqwlaK36tju2sT1m)
 
-goto manage Jenkins –&gt; manage credentials –&gt; Click on Jenkins global –&gt; add credentials
+Go to Manage Jenkins → manage credentials → Click on Jenkins global → add credentials
 
 ![](https://miro.medium.com/v2/resize:fit:736/0*zpHiGNpxLV_01U2m)
 

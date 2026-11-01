@@ -1,10 +1,17 @@
+# Long-lived ServiceAccount token Secret.
+#
+# NOTE: since Kubernetes 1.24 the API server no longer auto-creates these, and they
+# are discouraged — prefer the short-lived token the kubernetes-cli plugin obtains,
+# or generate one on demand with:
+#   kubectl -n webapps create token jenkins --duration=8760h
+# This Secret still works on any version if you need a stable token for Jenkins.
 apiVersion: v1
 kind: Secret
 type: kubernetes.io/service-account-token
 metadata:
   name: mysecretname
-  namespace: webapps  # Optional: specify the namespace for the secret
+  namespace: webapps
   annotations:
-    kubernetes.io/service-account.name: jenkins  # Link to ServiceAccount
+    kubernetes.io/service-account.name: jenkins  # links the token to this ServiceAccount
   labels:
-    app: jenkins  # Optional: add a label for better organization
+    app: jenkins

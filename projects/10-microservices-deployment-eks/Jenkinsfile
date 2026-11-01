@@ -70,7 +70,9 @@ pipeline {
                     credentialsId: 'k8-token',
                     namespace: 'webapps',
                     restrictKubeConfigAccess: false,
-                    serverUrl: 'https://EBCE08CF45C3AA5A574E126370E5D4FC.gr7.ap-south-1.eks.amazonaws.com'
+                    // replace with YOUR cluster endpoint:
+                    // aws eks describe-cluster --name my-eks2 --region ap-south-1 --query cluster.endpoint --output text
+                    serverUrl: 'https://REPLACE-WITH-YOUR-EKS-ENDPOINT.gr7.ap-south-1.eks.amazonaws.com'
                 ) {
                     sh 'kubectl apply -f deployment-service.yml'
                     sh 'kubectl get pods'
@@ -93,7 +95,8 @@ def buildAndPush(String servicePath) {
     script {
         def imageName = "sushantkapare1717/${servicePath.tokenize('/')[-1]}:latest"
         withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-            dir("/var/lib/jenkins/workspace/10-Tier/src/${servicePath}") {
+            // relative to the job workspace — works regardless of where Jenkins is installed
+            dir("src/${servicePath}") {
                 sh "docker build -t ${imageName} ."
                 sh "docker push ${imageName}"
                 sh "docker rmi ${imageName}"

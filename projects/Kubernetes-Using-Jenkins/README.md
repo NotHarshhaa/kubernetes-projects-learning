@@ -34,10 +34,11 @@ $ sudo hostnamectl set-hostname Jenkins-Master
 $ bash
 $ sudo apt install openjdk-17-jre -y 
 $ java -version
-$ curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo tee
-/usr/share/keyrings/jenkins-keyring.asc > /dev/null echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]
-https://pkg.jenkins.io/debian binary/ | sudo tee
-/etc/apt/sources.list.d/jenkins.list > /dev/null 
+
+// Add the Jenkins repository (each command on ONE line)
+$ curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+$ echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+
 $ sudo apt-get update
 $ sudo apt-get install jenkins
 $ sudo systemctl enable jenkins
@@ -85,8 +86,8 @@ $ cd Downloads
 $ ssh -i [keypair-name].pem ubuntu@[public IP]
 $ sudo apt update
 $ sudo apt upgrade -y 
-//Change server hostname to avoid confusion
-$ sudo hostnamectl set-hostname Jenkins-Master
+//Change server hostname to avoid confusion (this is the AGENT, not the master!)
+$ sudo hostnamectl set-hostname Jenkins-Agent
 $ bash
 $ sudo apt install openjdk-17-jre -y 
 $ java -version
@@ -118,10 +119,10 @@ $ sudo service sshd reload
 
 ```bash
 $ ssh-keygen // Hit enter till it generates key
-$ cd .sh/
+$ cd .ssh/
 $ ls
 
-// You will see files as - authorized_key id_rsa id_rsa.pub
+// You will see files as - authorized_keys id_rsa id_rsa.pub
 
 $ sudo cat id_rsa.pub  // copy complete key 
 ```
@@ -131,8 +132,8 @@ $ sudo cat id_rsa.pub  // copy complete key
 ```bash
 $ cd .ssh/
 $ ls
-// You will see files as - authorized_key
-$ sudo vi authorized_key 
+// You will see files as - authorized_keys
+$ sudo vi authorized_keys 
 // An editor will open. Paste public key copied from Jenkins-Master server. Save and exit
 ```
 
@@ -150,12 +151,12 @@ Create first admin user -
 [![Image description](https://res.cloudinary.com/practicaldev/image/fetch/s--F1qpK28_--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/uploads/articles/nwpboqjfabpxl5vk2nlj.png)](https://res.cloudinary.com/practicaldev/image/fetch/s--F1qpK28_--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/uploads/articles/nwpboqjfabpxl5vk2nlj.png)
 
   
-Save & Continue -&gt; Save and finish -&gt; Start using jenkins
+Save & Continue → Save and finish → Start using jenkins
 
 [![Image description](https://res.cloudinary.com/practicaldev/image/fetch/s--LUGTODQq--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/uploads/articles/lkaw8zypw9jyys02u9fp.png)](https://res.cloudinary.com/practicaldev/image/fetch/s--LUGTODQq--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/uploads/articles/lkaw8zypw9jyys02u9fp.png)
 
 **Jenkins Dashboard-**  
-Manage Jenkins -&gt; Nodes -&gt; Build-in-Node -&gt; Configure
+Manage Jenkins → Nodes → Built-In Node → Configure
 
 * Number of Executor - 0
     
@@ -184,9 +185,9 @@ Create new Node -
     
 * Host - \[Jenkins-Agent server private IP\]
     
-* Credentials -&gt; Add -&gt; Jenkins
+* Credentials → Add → Jenkins
     
-* Kind -&gt; SSH Username with private key
+* Kind → SSH Username with private key
     
 * Id - Jenkins-Agent
     
@@ -194,7 +195,7 @@ Create new Node -
     
 * Username - ubuntu
     
-* Private Key -&gt; Enter Directly -&gt; Under key Add
+* Private Key → Enter Directly → Under key Add
     
 
 *Note*: Copy private key of Master server (file name - id\_rsa) and paste here under add key.
@@ -214,14 +215,14 @@ Create new Node -
 
 Go to Jenkins Dashboard-
 
-* Manage Jenkins -&gt; Plugins -&gt; Available Plugins
+* Manage Jenkins → Plugins → Available Plugins
     
 
 *Note*: Install selected plugins as shown below
 
 [![Image description](https://res.cloudinary.com/practicaldev/image/fetch/s--y_YZcvoZ--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/uploads/articles/b6axbyd58l5za76wu1gf.png)](https://res.cloudinary.com/practicaldev/image/fetch/s--y_YZcvoZ--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/uploads/articles/b6axbyd58l5za76wu1gf.png)
 
-* Manage Jenkins -&gt; Tools -&gt; find Maven Installation
+* Manage Jenkins → Tools → find Maven Installation
     
 * Click on Add maven
     
@@ -229,7 +230,7 @@ Go to Jenkins Dashboard-
     
 * Apply & Save
     
-* Manage Jenkins -&gt; Tools -&gt; find JDK Installation
+* Manage Jenkins → Tools → find JDK Installation
     
 * Click on Add JDK
     
@@ -237,13 +238,13 @@ Go to Jenkins Dashboard-
     
 * Tick on 'Install automatically'
     
-* Click on Add Installer -&gt; Install from adoptium.net
+* Click on Add Installer → Install from adoptium.net
     
-* Version -&gt; Under OpenJDK 17 HotSpot -&gt; Choose jdk-17.0.5+8
+* Version → Under OpenJDK 17 HotSpot → Choose jdk-17.0.5+8
     
 * Apply & Save
     
-* Manage Jenkins -&gt; Under Security choose 'Credentials'
+* Manage Jenkins → Under Security choose 'Credentials'
     
 * Stores scoped to Jenkins - Click on global drop down and Add Credentials
     
@@ -255,7 +256,7 @@ Go to Jenkins Dashboard-
     
 * Id - github
     
-* Decription - github
+* Description - github
     
 * Click on 'Create'
     
@@ -268,21 +269,21 @@ Go to Jenkins Dashboard -
 
 * New Item
     
-* Enter an Item name - register-app-ci -&gt; Select 'Pipeline' -&gt; Click 'Ok'
+* Enter an Item name - register-app-ci → Select 'Pipeline' → Click 'Ok'
     
-* Configuration -&gt; General
+* Configuration → General
     
 * Tick on 'Discard old build'
     
 * Max # of builds to keep - 2
     
-* Under 'Pipeline' -&gt; Definition -&gt; Choose 'pipeline script from SCM'
+* Under 'Pipeline' → Definition → Choose 'pipeline script from SCM'
     
 * SCM - git
     
-* Repositories -&gt; Repository URL - \[Paste your forked repository URL\]
+* Repositories → Repository URL - \[Paste your forked repository URL\]
     
-* Credentials -&gt; Choose \[your GitHub Credentials\]
+* Credentials → Choose \[your GitHub Credentials\]
     
 * Branch Specifier - \*/main
     
@@ -446,7 +447,7 @@ $ sudo systemctl status sonar
 $ sudo tail -f /opt/sonarqube/logs/sonar.log
 ```
 
-Copy public IP of SonarQuber server and paste in the browser with port 9000
+Copy public IP of the SonarQube server and paste in the browser with port 9000
 
 [![Image description](https://res.cloudinary.com/practicaldev/image/fetch/s--XNrSdLU7--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/uploads/articles/0yhs47yxvjkp8ywxsa3l.png)](https://res.cloudinary.com/practicaldev/image/fetch/s--XNrSdLU7--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/uploads/articles/0yhs47yxvjkp8ywxsa3l.png)
 
@@ -462,7 +463,7 @@ Copy public IP of SonarQuber server and paste in the browser with port 9000
 
 From SonarQube Console-
 
-* Click on profile -&gt; My Account -&gt; Security
+* Click on profile → My Account → Security
     
 * Name - jenkins-sonarqube-token
     
@@ -475,7 +476,7 @@ From SonarQube Console-
 
 Go to Jenkins Dashboard-
 
-* Manage jenkins -&gt; Credentials -&gt; Add new Credentials
+* Manage jenkins → Credentials → Add new Credentials
     
 * Kind - Secret Text
     
@@ -491,7 +492,7 @@ Go to Jenkins Dashboard-
     
 * Restart Jenkins
     
-* Manage Jenkins -&gt; System -&gt; Search for 'SonarQube Servers' -&gt; Add SonarQube
+* Manage Jenkins → System → Search for 'SonarQube Servers' → Add SonarQube
     
 * Name - sonarqube-server
     
@@ -501,9 +502,9 @@ Go to Jenkins Dashboard-
     
 * Apply & Save
     
-* Manage jenkins -&gt; Tools
+* Manage jenkins → Tools
     
-* Search 'SonarQube Scanner installations' -&gt; Add SonarQube Scanner
+* Search 'SonarQube Scanner installations' → Add SonarQube Scanner
     
 * Name - sonarqube-scanner
     
@@ -572,7 +573,7 @@ $ ll
 $ chmod +x ./kubectl //Gave executable permisions
 $ mv kubectl /bin  //Because all our executable files are in /bin
 $ kubectl version --output=yaml
-$ curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+$ curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
 $ cd /tmp
 $ ll
 $ sudo mv /tmp/eksctl /bin
@@ -585,7 +586,7 @@ Go to AWS Console and create one IAM role
     
 * Service or Use Case - EC2
     
-* Add Permission - AdministrationAccess
+* Add Permission - AdministratorAccess
     
 * Name - eksctl\_role
     
@@ -612,10 +613,12 @@ Go to EKS-Bootstrap-Server terminal
 
 ```bash
 // Setup Kubernetes using eksctl
-$ eksctl create cluster --name [name of cluster]
---region ap-south-1
---node-type t2.small
---nodes 3 \       //Minimum 3 nodes required for this project
+$ eksctl create cluster \
+    --name my-eks-cluster \
+    --region ap-south-1 \
+    --node-type t2.small \
+    --nodes 3 --nodes-min 2 --nodes-max 3   // minimum 3 nodes recommended for this project
+
 $ kubectl get nodes
 ```
 
@@ -642,9 +645,10 @@ $ kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"
 //Wait about 2 minutes for the LoadBalancer creation
 $ kubectl get svc -n argocd
 
-//Get pasword and decode it.
-$ kubectl get secret argocd-initial-admin-secret -n argocd -o yaml 
-$ echo WXVpLUg2LWxoWjRkSHFmSA== | base64 --decode
+//Get password and decode it.
+$ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
+// delete the initial secret once you have it (ArgoCD regenerates a new one otherwise)
+$ kubectl -n argocd delete secret argocd-initial-admin-secret
 ```
 
 Copy DNS name for the LoadBalancer, created for the argocd-cluster and paste it in the browser
@@ -666,7 +670,7 @@ $ argocd login [url of argocd_cluster] --username admin // Use updated password
 
 [![Image description](https://res.cloudinary.com/practicaldev/image/fetch/s--Io0o_M6s--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/uploads/articles/knewqd9nhpw25a6ozq9e.png)](https://res.cloudinary.com/practicaldev/image/fetch/s--Io0o_M6s--/c_limit%2Cf_auto%2Cfl_progressive%2Cq_auto%2Cw_800/https://dev-to-uploads.s3.amazonaws.com/uploads/articles/knewqd9nhpw25a6ozq9e.png)
 
-Go to ArgoCD Dashboard -&gt; Setting -&gt; Clusters  
+Go to ArgoCD Dashboard → Setting → Clusters  
 *Note*: We can see default cluster here. We can see same cluster using CLI
 
 ```bash
@@ -676,7 +680,7 @@ $ argocd cluster list
 $ kubectl config get contexts
 
 //To add eks_cluster to argocd
-$ argocd cluster add [name of eks-cluster] --name shamim-eks-cluster
+$ argocd cluster add [name of eks-cluster] --name my-eks-cluster
 $ argocd cluster list
 ```
 
@@ -690,7 +694,7 @@ Note: Go to argocd and you can see created cluster there.
 
 Go to ArgoCD Dashboard and configure this repository.
 
-* Dashboard -&gt; Settings -&gt; Repositories -&gt; Connect Repo
+* Dashboard → Settings → Repositories → Connect Repo
     
 * Via HTTPS
     
@@ -700,13 +704,13 @@ Go to ArgoCD Dashboard and configure this repository.
     
 * Repository URL - \[gitops-register-app github URL\]
     
-* Username - \[GutHub username\]
+* Username - \[GitHub username\]
     
-* Password - \[GitHub account password\]
+* Password - \[GitHub **Personal Access Token** — GitHub no longer accepts account passwords for repo access\]
     
 * Click on 'Connect' Note: It will show 'Successful' as connection status
     
-* Dashboard -&gt; New App -&gt;
+* Dashboard → New App →
     
 * Application Name - register-app
     
@@ -752,7 +756,7 @@ Put /webapp after port 8080 in the browser
 
 Go to Jenkins Dashboard in the browser
 
-* Dashboard -&gt; New Item
+* Dashboard → New Item
     
 * Item Name - gitops-register-app-cd
     
@@ -772,7 +776,7 @@ Go to Jenkins Dashboard in the browser
     
 * Authentication token name - gitops-token
     
-* Under Pipeline -&gt; Definition - pipeline script from SCM
+* Under Pipeline → Definition - pipeline script from SCM
     
 * SCM - git
     
@@ -784,7 +788,7 @@ Go to Jenkins Dashboard in the browser
     
 * Apply & Save
     
-* Click on User profile -&gt; Configure
+* Click on User profile → Configure
     
 * Under API toke click on 'Add new token'
     
@@ -792,7 +796,7 @@ Go to Jenkins Dashboard in the browser
     
 * Apply & Save
     
-* Dashboard -&gt; Manage Jenkins -&gt; Credentials
+* Dashboard → Manage Jenkins → Credentials
     
 * Click on global and and add Credentials
     
@@ -805,7 +809,7 @@ Go to Jenkins Dashboard in the browser
 * Click on create
     
 
-## Congratulation! Its done now
+## Congratulations! It's done now
 
 **Verify CI/CD pipeline by doing test commit on GitHub Repo**
 
@@ -821,7 +825,7 @@ Go to Jenkins Dashboard again
     
 * Tick Poll SCM
     
-* Schedule - \*
+* Schedule - \* \* \* \* \*   // poll every minute; adjust to taste
     
 * Apply & Save
     
